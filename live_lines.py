@@ -3,7 +3,7 @@ import time
 import os.path
 import requests
 
-save_path = r'C:\Users\Anand\PycharmProjects\live_lines\data'
+save_path = '/home/sippycups/Programming/PycharmProjects/live_lines/data'
 
 root_url = 'https://www.bovada.lv'
 
@@ -13,14 +13,19 @@ pre_url = "https://www.bovada.lv/services/sports/event/v2/events/" \
 live_url = "https://www.bovada.lv/services/sports/event/v2/events/A/" \
            "description/basketball/nba?marketFilterId=def&liveOnly=true&lang=en"
 
+scores_url = "https://services.bovada.lv/services/sports/results/api/v1/scores/"
+
 all_games = []
 headers = {'User-Agent': 'Mozilla/5.0'}
 
 
 # data[0]['events'][0]['displayGroups'][0]['markets']
+# TODO live_marker, get_scores
+# add field: 1 for live, 0 for not live
+# get_scores: separate Score class with its own update times,
 
 
-class GameParams:
+class Lines:
     def __init__(self, json_game, access_time):
         self.updated = 0
         [self.query_times, self.num_markets, self.last_modified,
@@ -155,18 +160,18 @@ class Game:
         self.start_time = json_game['startTime']
         # self.has_ended = 0
         # self.update_count = 0
-        self.game_params = GameParams(json_game, access_time)
+        self.lines = Lines(json_game, access_time)
 
     def write_game(self, file):
         # print(str(self.id))
-        # if self.game_params.updated == 1:
+        # if self.lines.updated == 1:
         file.write(self.id + ",")
         file.write(self.link + ",")
         file.write(self.away_team + ",")
         file.write(self.home_team + ",")
         file.write(str(self.start_time) + ",")
         # file.write(str(self.has_ended) + ",")
-        self.game_params.write_params(file)
+        self.lines.write_params(file)
 
 
 class Market:
@@ -174,13 +179,19 @@ class Market:
         self.away = away
         self.home = home
 
+class Score:
+    def __init__(self, game_id):
+        page = get_json(scores_url + game_id)
+        self.quarter = page[0]['clock']
+        self.is_ticking = page[0]['clock']['isTicking']
+
 
 def cur_games(json_games, access_time):
     for event in json_games:
         exists = 0
         for game in all_games:
             if event['id'] == game.id:
-                GameParams.update(game.game_params, event, access_time)
+                Lines.update(game.lines, event, access_time)
                 exists = 1
                 break
         if exists == 0:
@@ -269,13 +280,19 @@ def main(wait_time, file_name):
         counter += 1
 
         if counter % 20 == 1:
+
             print("before" + str(len(all_games)))
+
             update_games_list(events)
+
             print("after" + str(len(all_games)))
+
         for game in all_games:
-            # print(str(game.game_params.updated))
-            if game.game_params.updated == 1:
+
+            if game.lines.updated == 1:
+
                 game.write_game(file)
+
 
 
 main(3, "1_10_19")
