@@ -45,48 +45,53 @@ class Lines:
                 self.tot_a_hcap, self.tot_a_amer, self.tot_a_deci, self.tot_a_frac, self.tot_h_hcap,
                 self.tot_h_amer, self.tot_h_deci, self.tot_h_frac]
 
+    def market_grab(self, markets):
+        market_list = []
+
+        for market in markets:
+
+            for i in range(3):
+                outcomes = market['outcomes']
+            if len(outcomes) == 2:
+                away = outcomes[0]['price']
+                home = outcomes[1]['price']
+
+            elif len(outcomes) == 1:
+                away = outcomes[0]['price']
+
+                if i == 1:
+                    home = {"american": 0, "decimal": 0, "fractional": 0}
+                else:
+                    home = {"handicap": 0, "american": 0, "decimal": 0, "fractional": 0}
+
+            else:
+
+                if i == 1:
+                    away = {"american": 0, "decimal": 0, "fractional": 0}
+                    home = away
+                else:
+                    away = {"handicap": 0, "american": 0, "decimal": 0, "fractional": 0}
+                    home = away
+            m = Market(away, home)
+            market_list.append(m)
+
+        return market_list
+
     def update(self, json_game, access_time):
         # right now this has risk of writing data for the wrong team, because if only one of the
         # fields is filled, even if it is for the home team, it will be interpretted as ps[0], for example
         self.updated = 0
-        markets = json_game['displayGroups'][0]['markets']
-        ps = None
-        ml = None
-        tot = None
-        types = [ps, ml, tot]
+        json_markets = json_game['displayGroups'][0]['markets']
 
-        for market in markets:
-            for i in range(3):
-                outcomes = market['outcomes']
+        markets = self.market_grab(json_markets)
 
-                if len(outcomes) == 2:
-                    away = outcomes[0]['price']
-                    home = outcomes[1]['price']
-                elif len(outcomes) == 1:
-
-                    away = outcomes[0]['price']
-
-                    if i == 1:
-                        home = {"american": 0, "decimal": 0, "fractional": 0}
-                    else:
-                        home = {"handicap": 0, "american": 0, "decimal": 0, "fractional": 0}
-                else:
-                    if i == 1:
-                        away = {"american": 0, "decimal": 0, "fractional": 0}
-                        home = away
-                    else:
-                        away = {"handicap": 0, "american": 0, "decimal": 0, "fractional": 0}
-                        home = away
-
-                types[i] = Market(away, home)
-                # json_param_list[i] =
         json_param_list = [json_game['numMarkets'], json_game['lastModified']]
 
         flist = ['handicap', 'american', 'decimal', 'fractional']
         ml_list = ['american', 'decimal', 'fractional']
 
-        ps_a = types[0].away
-        ps_h = types[0].home
+        ps_a = markets[0].away
+        ps_h = markets[0].home
 
         for i in range(4):
             try:
@@ -101,8 +106,8 @@ class Lines:
                 ps_h[flist[i]] = 0
                 json_param_list.append(ps_h[flist[i]])
 
-        ml_a = types[1].away
-        ml_h = types[1].home
+        ml_a = markets[1].away
+        ml_h = markets[1].home
 
         for i in range(3):
             try:
@@ -117,8 +122,8 @@ class Lines:
                 ml_h[ml_list[i]] = 0
                 json_param_list.append(ml_h[ml_list[i]])
 
-        tot_a = types[2].away
-        tot_h = types[2].home
+        tot_a = markets[2].away
+        tot_h = markets[2].home
 
         for i in range(4):
             try:
@@ -154,24 +159,35 @@ class Lines:
 class Game:
     def __init__(self, json_game, access_time):
         self.id = json_game['id']
+        self.sport = json_game['sport']
         self.link = json_game['link']
         self.away_team = json_game['description'].split('@')[0]
         self.home_team = json_game['description'].split('@')[1]
         self.start_time = json_game['startTime']
-        # self.has_ended = 0
-        # self.update_count = 0
+        self.live = live_check(json_game)
+        self.scores = Score(self.id)
         self.lines = Lines(json_game, access_time)
 
     def write_game(self, file):
-        # print(str(self.id))
-        # if self.lines.updated == 1:
+
         file.write(self.id + ",")
+        file.write(self.sport + ",")
         file.write(self.link + ",")
         file.write(self.away_team + ",")
         file.write(self.home_team + ",")
         file.write(str(self.start_time) + ",")
-        # file.write(str(self.has_ended) + ",")
+        file.write(str(self.live) + ",")
+        self.scores.write_scores(file)
         self.lines.write_params(file)
+
+
+def live_check(event):
+    try:
+        if event['gameStatus'] == "IN_PROGRESS":
+            return 1
+    except:
+        return 0
+    return 0
 
 
 class Market:
@@ -179,11 +195,47 @@ class Market:
         self.away = away
         self.home = home
 
+
 class Score:
     def __init__(self, game_id):
+
+        [self.quarter, self.num_quarters, self.secs, self.is_ticking,
+            self.status, self.dir_isdown, self.last_updated,
+         self.away_score, self.home_score] = (0 for i in range(9))
+
+        self.params = [self.quarter, self.num_quarters, self.secs, self.is_ticking,
+        self.status, self.dir_isdown, self.last_updated, self.away_score, self.home_score]
+
         page = get_json(scores_url + game_id)
-        self.quarter = page[0]['clock']
-        self.is_ticking = page[0]['clock']['isTicking']
+
+        self.update_scores(page)
+
+    def update_scores(self, page):
+        data = page
+        clock = data['clock']
+
+        self.quarter = clock['periodNumber']
+        self.num_quarters = clock['numberOfPeriods']
+        self.secs = clock['relativeGameTimeInSecs']
+
+        if clock['isTicking'] == 'true':
+            self.is_ticking = 1
+        else:
+            self.is_ticking = 0
+
+        if clock['direction'] == 'down':
+            self.dir_isdown = 1
+        else: 
+            self.dir_isdown = 0
+
+        self.last_updated = data['lastUpdated']
+
+        self.away_score = data['latestScore']['visitor']
+        self.home_score = data['latestScore']['home']
+
+    def write_scores(self, file):
+        for param in self.params:
+            file.write(str(param) + ',')
 
 
 def cur_games(json_games, access_time):
@@ -211,11 +263,11 @@ def update_games_list(json_games):
 
 
 def get_json(url):
-    r = requests.get(url, headers=headers)
-    data = r.json()
-    if not data:
-        print("json empty\n")
-        # exit(1)
+    try:
+        r = requests.get(url, headers=headers)
+        data = r.json()
+    except:
+        return data
     return data
 
 
@@ -294,5 +346,4 @@ def main(wait_time, file_name):
                 game.write_game(file)
 
 
-
-main(3, "1_10_19")
+main(3, "test")
