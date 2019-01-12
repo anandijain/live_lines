@@ -8,10 +8,16 @@ save_path = '/home/sippycups/Programming/PycharmProjects/live_lines/data'
 root_url = 'https://www.bovada.lv'
 
 pre_url = "https://www.bovada.lv/services/sports/event/v2/events/" \
-          "A/description/basketball/nba?marketFilterId=def&preMatchOnly=true&lang=en"
+           "A/description/basketball/nba?marketFilterId=def&preMatchOnly=true&lang=en"
 
 live_url = "https://www.bovada.lv/services/sports/event/v2/events/A/" \
-           "description/basketball/nba?marketFilterId=def&liveOnly=true&lang=en"
+            "description/basketball/nba?marketFilterId=def&liveOnly=true&lang=en"
+
+# live_url = "https://www.bovada.lv/services/sports/event/v2/events/A/" \
+#            "description/basketball?marketFilterId=def&liveOnly=true&eventsLimit=8&lang=en"
+#pre_url = "https://www.bovada.lv/services/sports/event/v2/events/A/" \
+#           "description/basketball?marketFilterId=def&preMatchOnly=true&eventsLimit=50&lang=en"
+
 
 scores_url = "https://services.bovada.lv/services/sports/results/api/v1/scores/"
 
@@ -199,16 +205,16 @@ class Market:
 class Score:
     def __init__(self, game_id):
 
+        page = get_json(scores_url + game_id)
+
         [self.quarter, self.num_quarters, self.secs, self.is_ticking,
             self.status, self.dir_isdown, self.last_updated,
          self.away_score, self.home_score] = (0 for i in range(9))
 
-        self.params = [self.quarter, self.num_quarters, self.secs, self.is_ticking,
-        self.status, self.dir_isdown, self.last_updated, self.away_score, self.home_score]
-
-        page = get_json(scores_url + game_id)
-
         self.update_scores(page)
+
+        self.params = [self.quarter, self.num_quarters, self.secs, self.is_ticking,
+                        self.status, self.dir_isdown, self.last_updated, self.away_score, self.home_score]
 
     def update_scores(self, page):
         data = page
@@ -235,6 +241,7 @@ class Score:
 
     def write_scores(self, file):
         for param in self.params:
+            print(str(param))
             file.write(str(param) + ',')
 
 
@@ -346,4 +353,4 @@ def main(wait_time, file_name):
                 game.write_game(file)
 
 
-main(3, "test")
+main(1, "nba_scores")
