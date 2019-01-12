@@ -127,7 +127,7 @@ class Lines:
         for param in self.param_list:
             file.write(str(param[-1]))
             file.write(",")
-        print("write_params called")
+        # print("write_params called")
         file.write("\n")
 
 
@@ -154,15 +154,6 @@ class Game:
         file.write(str(self.live) + ",")
         self.scores.write_scores(file)
         self.lines.write_params(file)
-
-
-def live_check(event):
-    try:
-        if event['gameStatus'] == "IN_PROGRESS":
-            return 1
-    except:
-        return 0
-    return 0
 
 
 class Market:
@@ -192,6 +183,10 @@ class Score:
         self.quarter = clock['periodNumber']
         self.num_quarters = clock['numberOfPeriods']
         self.secs = clock['relativeGameTimeInSecs']
+        self.last_updated = data['lastUpdated']
+
+        self.away_score = data['latestScore']['visitor']
+        self.home_score = data['latestScore']['home']
 
         if clock['isTicking'] == 'true':
             self.is_ticking = 1
@@ -203,10 +198,10 @@ class Score:
         else: 
             self.dir_isdown = 0
 
-        self.last_updated = data['lastUpdated']
-
-        self.away_score = data['latestScore']['visitor']
-        self.home_score = data['latestScore']['home']
+        if data['gameStatus'] == "IN_PROGRESS":
+            self.status = 1
+        else:
+            self.status = 0
 
         self.params = [self.quarter, self.num_quarters, self.secs, self.is_ticking,
                         self.status, self.dir_isdown, self.last_updated, self.away_score, self.home_score]
@@ -248,6 +243,17 @@ def market_grab(markets):
         market_list.append(m)
 
     return market_list
+
+
+def live_check(event):
+    try:
+        print(event['gameStatus'])
+        if event['gameStatus'] == "IN_PROGRESS":
+
+            return 1
+    except:
+        return 0
+    return 0
 
 
 def cur_games(json_games, access_time):
