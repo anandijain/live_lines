@@ -65,8 +65,12 @@ class Lines:
         flist = ['handicap', 'american', 'decimal', 'fractional']
         ml_list = ['american', 'decimal', 'fractional']
 
+        # try:
         ps_a = markets[0].away
         ps_h = markets[0].home
+        # except:
+        #     set_flist_zero()
+
 
         for i in range(4):
             try:
@@ -178,30 +182,35 @@ class Score:
 
         page = get_json(scores_url + game_id)
         data = page
-        clock = data['clock']
+        try:
+            clock = data['clock']
 
-        self.quarter = clock['periodNumber']
-        self.num_quarters = clock['numberOfPeriods']
-        self.secs = clock['relativeGameTimeInSecs']
-        self.last_updated = data['lastUpdated']
+            self.quarter = clock['periodNumber']
+            self.num_quarters = clock['numberOfPeriods']
+            self.secs = clock['relativeGameTimeInSecs']
+            self.last_updated = data['lastUpdated']
 
-        self.away_score = data['latestScore']['visitor']
-        self.home_score = data['latestScore']['home']
+            self.away_score = data['latestScore']['visitor']
+            self.home_score = data['latestScore']['home']
 
-        if clock['isTicking'] == 'true':
-            self.is_ticking = 1
-        else:
-            self.is_ticking = 0
+            if clock['isTicking'] == 'true':
+                self.is_ticking = 1
+            else:
+                self.is_ticking = 0
 
-        if clock['direction'] == 'down':
-            self.dir_isdown = 1
-        else: 
-            self.dir_isdown = 0
+            if clock['direction'] == 'down':
+                self.dir_isdown = 1
+            else:
+                self.dir_isdown = 0
 
-        if data['gameStatus'] == "IN_PROGRESS":
-            self.status = 1
-        else:
-            self.status = 0
+            if data['gameStatus'] == "IN_PROGRESS":
+                self.status = 1
+            else:
+                self.status = 0
+        except:
+            [self.quarter, self.num_quarters, self.secs, self.is_ticking,
+             self.status, self.dir_isdown, self.last_updated,
+             self.away_score, self.home_score] = (0 for i in range(9))
 
         self.params = [self.quarter, self.num_quarters, self.secs, self.is_ticking,
                         self.status, self.dir_isdown, self.last_updated, self.away_score, self.home_score]
@@ -282,8 +291,14 @@ def update_games_list(json_games):
 
 
 def get_json(url):
-    r = requests.get(url, headers=headers)
-    data = r.json()
+    try:
+        r = requests.get(url, headers=headers)
+    except:
+        print("miss")
+    try:
+        data = r.json()
+    except:
+        data = None
     return data
 
 
@@ -362,4 +377,4 @@ def main(wait_time, file_name):
                 game.write_game(file)
 
 
-main(1, "nba_scores_3")
+main(1, "nba_scores_4")
