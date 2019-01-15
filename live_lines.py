@@ -15,7 +15,8 @@ live_url = "https://www.bovada.lv/services/sports/event/v2/events/A/" \
 
 # live_url = "https://www.bovada.lv/services/sports/event/v2/events/A/" \
 #            "description/basketball?marketFilterId=def&liveOnly=true&eventsLimit=8&lang=en"
-#pre_url = "https://www.bovada.lv/services/sports/event/v2/events/A/" \
+
+# pre_url = "https://www.bovada.lv/services/sports/event/v2/events/A/" \
 #           "description/basketball?marketFilterId=def&preMatchOnly=true&eventsLimit=50&lang=en"
 
 
@@ -26,35 +27,42 @@ headers = {'User-Agent': 'Mozilla/5.0'}
 
 
 # data[0]['events'][0]['displayGroups'][0]['markets']
-# TODO live_marker, get_scores
+# TODO redo update, tries and excepts, add header function
+# TODO add a file write that prints a readable non epoch time
+# TODO convert last_mod_score to epoch
+# TODO add restart/timeout
+# TODO independent score checker
+# TODO 'EVEN' fix
+
 # add field: 1 for live, 0 for not live
 # get_scores: separate Score class with its own update times,
 
-
+ #    tot_a = markets[2].away
+# IndexError: list index out of range
 class Lines:
     def __init__(self, json_game, access_time):
         self.updated = 0
-        [self.query_times, self.num_markets, self.last_modified,
-         self.ps_a_hcap, self.ps_a_amer, self.ps_a_deci, self.ps_a_frac,
-         self.ps_h_hcap, self.ps_h_amer, self.ps_h_deci, self.ps_h_frac,
-         self.ml_a_amer, self.ml_a_deci, self.ml_a_frac, self.ml_h_amer,
-         self.ml_h_deci, self.ml_h_frac, self.tot_a_hcap, self.tot_a_amer,
-         self.tot_a_deci, self.tot_a_frac, self.tot_h_hcap, self.tot_h_amer,
-         self.tot_h_deci, self.tot_h_frac] = ([] for i in range(25))
+
+        [self.query_times, self.last_mod_lines, self.num_markets, self.a_odds_ml, self.h_odds_ml, self.a_deci_ml, self.h_deci_ml,
+        self.a_odds_ps, self.h_odds_ps,
+        self.a_deci_ps, self.h_deci_ps, self.a_hcap_ps, self.h_hcap_ps, 
+        self.a_odds_tot, self.h_odds_tot,
+        self.a_deci_tot, self.h_deci_tot, self.a_hcap_tot,
+        self.h_hcap_tot] = ([] for i in range(19))
 
         self.param_list = \
             [
                 # self.query_times,
-                self.num_markets, self.last_modified, self.ps_a_hcap, self.ps_a_amer,
-                self.ps_a_deci, self.ps_a_frac, self.ps_h_hcap, self.ps_h_amer, self.ps_h_deci, self.ps_h_frac,
-                self.ml_a_amer, self.ml_a_deci, self.ml_a_frac, self.ml_h_amer, self.ml_h_deci, self.ml_h_frac,
-                self.tot_a_hcap, self.tot_a_amer, self.tot_a_deci, self.tot_a_frac, self.tot_h_hcap,
-                self.tot_h_amer, self.tot_h_deci, self.tot_h_frac]
+                self.last_mod_lines, self.num_markets, self.a_odds_ml, self.h_odds_ml, self.a_deci_ml, self.h_deci_ml,
+                self.a_odds_ps, self.h_odds_ps,
+                self.a_deci_ps, self.h_deci_ps, self.a_hcap_ps, self.h_hcap_ps, 
+                self.a_odds_tot, self.h_odds_tot,
+                self.a_deci_tot, self.h_deci_tot, self.a_hcap_tot,
+                self.h_hcap_tot]
 
     def update(self, json_game, access_time):
-        # right now this has risk of writing data for the wrong team, because if only one of the
-        # fields is filled, even if it is for the home team, it will be interpretted as ps[0], for example
-        self.updated = 0
+        
+        self.updated = 0 
 
         json_markets = json_game['displayGroups'][0]['markets']
 
@@ -100,10 +108,11 @@ class Lines:
             except:
                 ml_h[ml_list[i]] = 0
                 json_param_list.append(ml_h[ml_list[i]])
-
-        tot_a = markets[2].away
-        tot_h = markets[2].home
-
+        try:
+            tot_a = markets[2].away
+            tot_h = markets[2].home
+        except IndexError:
+            tot_a = {''}
         for i in range(4):
             try:
                 json_param_list.append(tot_a[flist[i]])
@@ -137,60 +146,57 @@ class Lines:
 
 class Game:
     def __init__(self, json_game, access_time):
-        self.id = json_game['id']
         self.sport = json_game['sport']
-        self.link = json_game['link']
-        self.away_team = json_game['description'].split('@')[0]
-        self.home_team = json_game['description'].split('@')[1]
+        self.game_id = json_game['id']
+        self.a_team = json_game['description'].split('@')[0]
+        self.h_team = json_game['description'].split('@')[1]
         self.start_time = json_game['startTime']
-        self.live = live_check(json_game)
-        self.scores = Score(self.id)
+        # self.live = live_check(json_game)
+        self.scores = Score(self.game_id)
         self.lines = Lines(json_game, access_time)
+        self.link = json_game['link']
 
     def write_game(self, file):
-
-        file.write(self.id + ",")
         file.write(self.sport + ",")
-        file.write(self.link + ",")
-        file.write(self.away_team + ",")
-        file.write(self.home_team + ",")
-        file.write(str(self.start_time) + ",")
-        file.write(str(self.live) + ",")
+        file.write(self.game_id + ",")
+        file.write(self.a_team + ",")
+        file.write(self.h_team + ",")
+        # time_cst
+
+        # file.write(str(self.live) + ",")
         self.scores.write_scores(file)
         self.lines.write_params(file)
+        file.write(self.link + ",")
+        file.write(str(self.start_time) + ",")
 
-
-class Market:
-    def __init__(self, away, home):
-        self.away = away
-        self.home = home
+        """sport, game_id, a_team, h_team, time_cst, last_mod_score, quarter, seconds, 
+        a_score, h_score,  clock_dir, num_quarters, link, game_start_time"""
 
 
 class Score:
     def __init__(self, game_id):
 
-        [self.quarter, self.num_quarters, self.secs, self.is_ticking,
-            self.status, self.dir_isdown, self.last_updated,
-         self.away_score, self.home_score] = (0 for i in range(9))
+        [self.last_mod_score, self.quarter, self.seconds, self.a_score, self.home_score,
+                        self.status, self.dir_isdown, self.num_quarters] = (0 for i in range(8))
 
         self.update_scores(game_id)
 
-        self.params = [self.quarter, self.num_quarters, self.secs, self.is_ticking,
-                        self.status, self.dir_isdown, self.last_updated, self.away_score, self.home_score]
+        self.params = [self.last_mod_score, self.quarter, self.seconds, self.a_score, self.home_score,
+                        self.status, self.dir_isdown, self.num_quarters]
 
     def update_scores(self, game_id):
 
-        page = get_json(scores_url + game_id)
-        data = page
+        data = get_json(scores_url + game_id)
+
         try:
             clock = data['clock']
 
             self.quarter = clock['periodNumber']
             self.num_quarters = clock['numberOfPeriods']
-            self.secs = clock['relativeGameTimeInSecs']
-            self.last_updated = data['lastUpdated']
+            self.seconds = clock['relativeGameTimeInseconds']
+            self.last_mod_score = data['lastUpdated']
 
-            self.away_score = data['latestScore']['visitor']
+            self.a_score = data['latestScore']['visitor']
             self.home_score = data['latestScore']['home']
 
             if clock['isTicking'] == 'true':
@@ -208,17 +214,23 @@ class Score:
             else:
                 self.status = 0
         except:
-            [self.quarter, self.num_quarters, self.secs, self.is_ticking,
-             self.status, self.dir_isdown, self.last_updated,
-             self.away_score, self.home_score] = (0 for i in range(9))
+            [self.quarter, self.num_quarters, self.seconds, self.is_ticking,
+             self.status, self.dir_isdown, self.last_mod_score,
+             self.a_score, self.home_score] = (0 for i in range(9))
 
-        self.params = [self.quarter, self.num_quarters, self.secs, self.is_ticking,
-                        self.status, self.dir_isdown, self.last_updated, self.away_score, self.home_score]
+        self.params = [ self.last_mod_score, self.quarter, self.seconds, self.a_score, self.home_score,
+                        self.status, self.dir_isdown, self.num_quarters]
 
     def write_scores(self, file):
         for param in self.params:
             # print(str(param))
             file.write(str(param) + ',')
+
+
+class Market:
+    def __init__(self, away, home):
+        self.away = away
+        self.home = home
 
 
 def market_grab(markets):
@@ -229,6 +241,7 @@ def market_grab(markets):
         for i in range(3):
             outcomes = market['outcomes']
         if len(outcomes) == 2:
+
             away = outcomes[0]['price']
             home = outcomes[1]['price']
 
@@ -269,7 +282,7 @@ def cur_games(json_games, access_time):
     for event in json_games:
         exists = 0
         for game in all_games:
-            if event['id'] == game.id:
+            if event['id'] == game.game_id:
                 Lines.update(game.lines, event, access_time)
                 Score.update_scores(game.scores, event['id'])
                 exists = 1
@@ -281,7 +294,7 @@ def cur_games(json_games, access_time):
 def update_games_list(json_games):
     in_json = 0
     for game in all_games:
-        game_id = game.id
+        game_id = game.game_id
         for event in json_games:
             if game_id == event['id']:
                 in_json = 1
@@ -359,7 +372,7 @@ def main(wait_time, file_name):
         cur_games(events, access_time)
         time.sleep(wait_time)
 
-        print("counter: " + str(counter))
+        print("counter: " + str(counter) + " time: " + str(time.time()))
         counter += 1
 
         if counter % 20 == 1:
@@ -377,4 +390,4 @@ def main(wait_time, file_name):
                 game.write_game(file)
 
 
-main(1, "nba_scores_4")
+main(1, "2")
