@@ -13,12 +13,10 @@ root_url = 'https://www.bovada.lv'
 # live_url = "https://www.bovada.lv/services/sports/event/v2/events/A/" \
 #             "description/basketball/nba?marketFilterId=def&liveOnly=true&lang=en"
 
-live_url = "https://www.bovada.lv/services/sports/event/v2/events/A/" \
-           "description/basketball?marketFilterId=def&liveOnly=true&eventsLimit=8&lang=en"
-
-pre_url = "https://www.bovada.lv/services/sports/event/v2/events/A/" \
-          "description/basketball?marketFilterId=def&preMatchOnly=true&eventsLimit=50&lang=en"
-
+links = ["https://www.bovada.lv/services/sports/event/v2/events/A/" \
+         "description/basketball?marketFilterId=def&preMatchOnly=true&eventsLimit=50&lang=en",
+         "https://www.bovada.lv/services/sports/event/v2/events/A/" \
+         "description/basketball?marketFilterId=def&liveOnly=true&eventsLimit=8&lang=en"]
 
 scores_url = "https://services.bovada.lv/services/sports/results/api/v1/scores/"
 
@@ -112,16 +110,16 @@ class Game:
         self.link = json_game['link']
 
     def write_game(self, file):
+        delta = self.lines.last_mod_lines[-1] - self.start_time
         file.write(self.sport + ",")
         file.write(self.game_id + ",")
         file.write(self.a_team + ",")
         file.write(self.h_team + ",")
         self.scores.write_scores(file)
+        file.write(str(delta) + ',')
         self.lines.write_params(file)
         file.write(self.link + ",")
-        file.write(str(self.start_time) + ",")
-        delta = self.lines.last_mod_lines[-1] - self.start_time
-        file.write(str(delta) + '\n')
+        file.write(str(self.start_time) + "\n")
 
 
 class Score:
@@ -162,12 +160,10 @@ class Score:
              self.status, self.dir_isdown, self.last_mod_score,
              self.a_pts, self.h_pts] = (0 for i in range(8))
 
-        self.params = [self.last_mod_score, self.quarter, self.secs, self.a_pts, self.h_pts,
-                       self.status, self.dir_isdown, self.num_quarters]
+        self.params = [self.last_mod_score, self.quarter, self.secs, self.a_pts, self.h_pts, self.status]
 
     def write_scores(self, file):
         for param in self.params:
-            # print(str(param))
             file.write(str(param) + ',')
 
 
@@ -198,7 +194,6 @@ def market_grab(markets):
 
         m = Market(team_mkts[0], team_mkts[1])
         market_list.append(m)
-    # print(str(market_list))
     return market_list
 
 
@@ -274,18 +269,15 @@ def init_games(json_games, access_time):
 
 
 def json_events():
+    pages = []
     games = []
-    pre_json = get_json(pre_url)
 
-    if pre_json:
-        pre_games = pre_json[0]['events']
-        games += pre_games
+    for link in links:
+        pages.append(get_json(link))
 
-    live_json = get_json(live_url)
-
-    if live_json:
-        live_games = live_json[0]['events']
-        games += live_games
+    for page in pages:
+        for league in page:
+            games += league['events']
 
     return games
 
@@ -317,7 +309,7 @@ def main(wait_time, file_name):
         cur_games(events, access_time)
         time.sleep(wait_time)
 
-        print("counter: " + str(counter) + " time: " + str(time.time()))
+        print("counter: " + str(counter) + " time: " + str(time.localtime()))
         counter += 1
 
         if counter % 20 == 1:
@@ -335,4 +327,4 @@ def main(wait_time, file_name):
                 game.write_game(file)
 
 
-main(1, "Testing all basketball 1 19 19")
+main(1, "Testing all basketball 2")
