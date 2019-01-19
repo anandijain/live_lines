@@ -143,7 +143,7 @@ class Score:
         except KeyError:
             pass
         try:
-            self.secs = clock['relativeGameTimeInsecs']
+            self.secs = clock['relativeGameTimeInSecs']
         except KeyError:
             pass
         try:
