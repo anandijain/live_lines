@@ -67,81 +67,43 @@ class Lines:
         json_markets = json_game['displayGroups'][0]['markets']
 
         markets = market_grab(json_markets)
-
-        json_param_list = [json_game['numMarkets'], json_game['lastModified']]
-
-        flist = ['handicap', 'american', 'decimal', 'fractional']
-        ml_list = ['american', 'decimal', 'fractional']
-
-        # try:
-        ps_a = markets[0].away
-        ps_h = markets[0].home
-        # except:
-        #     set_flist_zero()
-
-
-        for i in range(4):
-            try:
-                json_param_list.append(ps_a[flist[i]])
-            except:
-                ps_a[flist[i]] = 0
-                json_param_list.append(ps_a[flist[i]])
-        for i in range(4):
-            try:
-                json_param_list.append(ps_h[flist[i]])
-            except:
-                ps_h[flist[i]] = 0
-                json_param_list.append(ps_h[flist[i]])
-
-        ml_a = markets[1].away
-        ml_h = markets[1].home
-
-        for i in range(3):
-            try:
-                json_param_list.append(ml_a[ml_list[i]])
-            except:
-                ml_a[ml_list[i]] = 0
-                json_param_list.append(ml_a[ml_list[i]])
-        for i in range(3):
-            try:
-                json_param_list.append(ml_h[ml_list[i]])
-            except:
-                ml_h[ml_list[i]] = 0
-                json_param_list.append(ml_h[ml_list[i]])
+        blank = {"american": 0, "decimal": 0, "handicap": 0}
+        # by this point we should have guaranteed that there are no fields that will cause KeyErrors
+        # going to mistake
         try:
-            tot_a = markets[2].away
-            tot_h = markets[2].home
+            ps = markets[0]
+            ml = markets[1]
+            tot = markets[2]
         except IndexError:
-            tot_a = {''}
-        for i in range(4):
-            try:
-                json_param_list.append(tot_a[flist[i]])
-            except:
-                tot_a[flist[i]] = 0
-                json_param_list.append(tot_a[flist[i]])
-        for i in range(4):
-            try:
-                json_param_list.append(tot_h[flist[i]])
-            except:
-                tot_h[flist[i]] = 0
-                json_param_list.append(tot_h[flist[i]])
+            tot = ml
+            tot = Market(blank, blank)
 
-        for i in range(len(self.param_list)):
-            param = self.param_list[i]
+        json_params = [json_game['lastModified'], json_game['numMarkets'], ml.away['american'],
+                       ml.home['american'], ml.away['decimal'], ml.home['decimal'], ps.away['american'],
+                       ps.home['american'], ps.away['decimal'], ps.home['decimal'], ps.away['handicap'],
+                       ps.home['handicap'], tot.away['american'], tot.home['american'], tot.away['decimal'],
+                       tot.home['decimal'], tot.away['handicap'], tot.home['handicap']]
+
+        # self.a_odds_ml, self.h_odds_ml, self.a_deci_ml, self.h_deci_ml, self.a_odds_ps, self.h_odds_ps,
+        # self.a_deci_ps, self.h_deci_ps, self.a_hcap_ps, self.h_hcap_ps, self.a_odds_tot, self.h_odds_tot,
+        # self.a_deci_tot, self.h_deci_tot, self.a_hcap_tot, self.h_hcap_tot
+        i = 0
+
+        for param in self.param_list:
             if len(param) > 1:
-                if param[-1] == json_param_list[i]:
+                if param[-1] == json_params[i]:
                     continue
-            if json_param_list[i] is None:
-                json_param_list[i] = 0
-            self.param_list[i].append(json_param_list[i])
+            if json_params[i] is None:
+                json_params[i] = "?"
+            self.param_list[i].append(json_params[i])
             self.updated = 1
+            i += 1
 
     def write_params(self, file):
         for param in self.param_list:
             file.write(str(param[-1]))
             file.write(",")
         # print("write_params called")
-        file.write("\n")
 
 
 class Game:
@@ -161,28 +123,27 @@ class Game:
         file.write(self.game_id + ",")
         file.write(self.a_team + ",")
         file.write(self.h_team + ",")
-        # time_cst
-
-        # file.write(str(self.live) + ",")
         self.scores.write_scores(file)
         self.lines.write_params(file)
         file.write(self.link + ",")
         file.write(str(self.start_time) + ",")
-
-        """sport, game_id, a_team, h_team, time_cst, last_mod_score, quarter, seconds, 
-        a_score, h_score,  clock_dir, num_quarters, link, game_start_time"""
+        delta = self.lines.last_mod_lines[-1] - self.start_time
+        file.write(str(delta) + '\n')
+        """sport, game_id, a_team, h_team, time_cst, last_mod_score, quarter, secs, 
+        a_pts, h_score,  clock_dir, num_quarters, link, game_start_time"""
 
 
 class Score:
     def __init__(self, game_id):
 
-        [self.last_mod_score, self.quarter, self.seconds, self.a_score, self.home_score,
+        [self.last_mod_score, self.quarter, self.secs, self.a_pts, self.h_pts,
                         self.status, self.dir_isdown, self.num_quarters] = (0 for i in range(8))
 
         self.update_scores(game_id)
 
-        self.params = [self.last_mod_score, self.quarter, self.seconds, self.a_score, self.home_score,
-                        self.status, self.dir_isdown, self.num_quarters]
+        self.params = [self.last_mod_score, self.quarter, self.secs, self.a_pts, self.h_pts,
+                        self.status]
+                        # self.dir_isdown, self.num_quarters] - these really are more gunna be used for other sports, leaving them out for now
 
     def update_scores(self, game_id):
 
@@ -193,11 +154,11 @@ class Score:
 
             self.quarter = clock['periodNumber']
             self.num_quarters = clock['numberOfPeriods']
-            self.seconds = clock['relativeGameTimeInseconds']
+            self.secs = clock['relativeGameTimeInsecs']
             self.last_mod_score = data['lastUpdated']
 
-            self.a_score = data['latestScore']['visitor']
-            self.home_score = data['latestScore']['home']
+            self.a_pts = data['latestScore']['visitor']
+            self.h_pts = data['latestScore']['home']
 
             if clock['isTicking'] == 'true':
                 self.is_ticking = 1
@@ -214,11 +175,11 @@ class Score:
             else:
                 self.status = 0
         except:
-            [self.quarter, self.num_quarters, self.seconds, self.is_ticking,
+            [self.quarter, self.num_quarters, self.secs, self.is_ticking,
              self.status, self.dir_isdown, self.last_mod_score,
-             self.a_score, self.home_score] = (0 for i in range(9))
+             self.a_pts, self.h_pts] = (0 for i in range(9))
 
-        self.params = [ self.last_mod_score, self.quarter, self.seconds, self.a_score, self.home_score,
+        self.params = [ self.last_mod_score, self.quarter, self.secs, self.a_pts, self.h_pts,
                         self.status, self.dir_isdown, self.num_quarters]
 
     def write_scores(self, file):
@@ -235,35 +196,26 @@ class Market:
 
 def market_grab(markets):
     market_list = []
+    data = {"american": 0, "decimal": 0, "handicap": 0}
+    team_mkts = [data, data]
 
     for market in markets:
+        outcomes = market['outcomes']
+        i = 0
 
-        for i in range(3):
-            outcomes = market['outcomes']
-        if len(outcomes) == 2:
+        for outcome in outcomes:
+            try:
+                price = outcome['price']
+                team_mkts[i]['american'] = price['american']
+                team_mkts[i]['decimal'] = price['decimal']
+                team_mkts[i]['handicap'] = price['handicap']
+            except KeyError: 
+                pass
+            i += 1
 
-            away = outcomes[0]['price']
-            home = outcomes[1]['price']
-
-        elif len(outcomes) == 1:
-            away = outcomes[0]['price']
-
-            if i == 1:
-                home = {"american": 0, "decimal": 0, "fractional": 0}
-            else:
-                home = {"handicap": 0, "american": 0, "decimal": 0, "fractional": 0}
-
-        else:
-
-            if i == 1:
-                away = {"american": 0, "decimal": 0, "fractional": 0}
-                home = away
-            else:
-                away = {"handicap": 0, "american": 0, "decimal": 0, "fractional": 0}
-                home = away
-        m = Market(away, home)
+        m = Market(team_mkts[0], team_mkts[1])
         market_list.append(m)
-
+    # print(str(market_list))
     return market_list
 
 
@@ -355,10 +307,21 @@ def json_events():
     return games
 
 
+def write_header(file):
+    file.write("sport, game_id, a_team, h_team, ")
+    file.write("last_mod_score, quarter, secs, a_pts, h_pts, status, ")
+    file.write("last_mod_lines, num_markets, a_odds_ml, h_odds_ml, a_deci_ml, h_deci_ml, ")
+    file.write("a_odds_ps, h_odds_ps, a_deci_ps, h_deci_ps, a_hcap_ps, h_hcap_ps, a_odds_tot, ")
+    file.write("h_odds_tot, a_deci_tot, h_deci_tot, a_hcap_tot, h_hcap_tot, ")
+    file.write("link, game_start_time, last_mod_to_start \n")
+    #last_mod_to_start is last_mod_lines - game_start_time
+
+
 def main(wait_time, file_name):
     counter = 0
 
     file = open_file(file_name)
+    write_header(file)
 
     access_time = time.time()
     json_games = json_events()
@@ -390,4 +353,4 @@ def main(wait_time, file_name):
                 game.write_game(file)
 
 
-main(1, "2")
+main(1, "1 19 19")
