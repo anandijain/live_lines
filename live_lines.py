@@ -3,20 +3,18 @@ import time
 import os.path
 import requests
 
-save_path = '/home/sippycups/Programming/PycharmProjects/live_lines/data'
+save_path = r'C:\Users\Anand\PycharmProjects\live_lines\data'
 
 root_url = 'https://www.bovada.lv'
-
-# pre_url = "https://www.bovada.lv/services/sports/event/v2/events/" \
-#            "A/description/basketball/nba?marketFilterId=def&preMatchOnly=true&lang=en"
-#
-# live_url = "https://www.bovada.lv/services/sports/event/v2/events/A/" \
-#             "description/basketball/nba?marketFilterId=def&liveOnly=true&lang=en"
-
-links = ["https://www.bovada.lv/services/sports/event/v2/events/A/" \
-         "description/basketball?marketFilterId=def&preMatchOnly=true&eventsLimit=50&lang=en",
+links = ["https://www.bovada.lv/services/sports/event/v2/events/" \
+         "A/description/basketball/nba?marketFilterId=def&preMatchOnly=true&lang=en",
          "https://www.bovada.lv/services/sports/event/v2/events/A/" \
-         "description/basketball?marketFilterId=def&liveOnly=true&eventsLimit=8&lang=en"]
+         "description/basketball/nba?marketFilterId=def&liveOnly=true&lang=en"]
+
+# links = ["https://www.bovada.lv/services/sports/event/v2/events/A/" \
+#          "description/basketball?marketFilterId=def&preMatchOnly=true&eventsLimit=50&lang=en",
+#          "https://www.bovada.lv/services/sports/event/v2/events/A/" \
+#          "description/basketball?marketFilterId=def&liveOnly=true&eventsLimit=8&lang=en"]
 
 scores_url = "https://services.bovada.lv/services/sports/results/api/v1/scores/"
 
@@ -80,15 +78,16 @@ def get_json_params(json):
 
     try:
         ps = markets[0]
+    except IndexError:
+        ps = Market(blank, blank)
+    try:
         ml = markets[1]
+    except IndexError:
+        ml = Market(blank, blank)
+    try:
         tot = markets[2]
     except IndexError:
-        if ps is None:
-            ps = Market(blank, blank)
-        elif ml is None:
-            ml = Market(blank, blank)
-        else:
-            tot = Market(blank, blank)
+        tot = Market(blank, blank)
 
     jps = [json['lastModified'], json['numMarkets'], ml.away['american'], ml.home['american'],
            ml.away['decimal'], ml.home['decimal'], ps.away['american'], ps.home['american'],
@@ -134,37 +133,43 @@ class Score:
     def update_scores(self, game_id):
 
         data = get_json(scores_url + game_id)
-
+        clock = data['clock']
         try:
-            clock = data['clock']
-
             self.quarter = clock['periodNumber']
+        except KeyError:
+            pass
+        try:
             self.num_quarters = clock['numberOfPeriods']
+        except KeyError:
+            pass
+        try:
             self.secs = clock['relativeGameTimeInsecs']
+        except KeyError:
+            pass
+        try:
             self.last_mod_score = data['lastUpdated']
-
+        except KeyError:
+            pass
+        try:
             self.a_pts = data['latestScore']['visitor']
+        except KeyError:
+            pass
+        try:
             self.h_pts = data['latestScore']['home']
+        except KeyError:
+            pass
 
-            if clock['direction'] == 'down':
-                self.dir_isdown = 1
-            else:
-                self.dir_isdown = 0
-
-            if data['gameStatus'] == "IN_PROGRESS":
-                self.status = 1
-            else:
-                self.status = 0
-        except:
-            [self.quarter, self.num_quarters, self.secs,
-             self.status, self.dir_isdown, self.last_mod_score,
-             self.a_pts, self.h_pts] = (0 for i in range(8))
+        if data['gameStatus'] == "IN_PROGRESS":
+            self.status = 1
+        else:
+            self.status = 0
 
         self.params = [self.last_mod_score, self.quarter, self.secs, self.a_pts, self.h_pts, self.status]
 
     def write_scores(self, file):
         for param in self.params:
             file.write(str(param) + ',')
+            # print(str(param))
 
 
 class Market:
@@ -199,7 +204,7 @@ def market_grab(markets):
 
 def live_check(event):
     try:
-        print(event['gameStatus'])
+        # print(event['gameStatus'])
         if event['gameStatus'] == "IN_PROGRESS":
 
             return 1
@@ -271,24 +276,23 @@ def init_games(json_games, access_time):
 def json_events():
     pages = []
     games = []
-
+    print(links)
     for link in links:
         pages.append(get_json(link))
 
     for page in pages:
         for league in page:
             games += league['events']
-
     return games
 
 
 def write_header(file):
     file.write("sport, game_id, a_team, h_team, ")
-    file.write("last_mod_score, quarter, secs, a_pts, h_pts, status, ")
+    file.write("last_mod_score, quarter, secs, a_pts, h_pts, status, last_mod_to_start,")
     file.write("last_mod_lines, num_markets, a_odds_ml, h_odds_ml, a_deci_ml, h_deci_ml, ")
     file.write("a_odds_ps, h_odds_ps, a_deci_ps, h_deci_ps, a_hcap_ps, h_hcap_ps, a_odds_tot, ")
     file.write("h_odds_tot, a_deci_tot, h_deci_tot, a_hcap_tot, h_hcap_tot, ")
-    file.write("link, game_start_time, last_mod_to_start \n")  # last_mod_to_start is last_mod_lines - game_start_time
+    file.write("link, game_start_time, \n")  # last_mod_to_start is last_mod_lines - game_start_time
 
 
 def main(wait_time, file_name):
@@ -327,4 +331,4 @@ def main(wait_time, file_name):
                 game.write_game(file)
 
 
-main(1, "Testing all basketball 2")
+main(1, "Testing all basketball 4")
