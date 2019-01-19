@@ -7,17 +7,17 @@ save_path = '/home/sippycups/Programming/PycharmProjects/live_lines/data'
 
 root_url = 'https://www.bovada.lv'
 
-pre_url = "https://www.bovada.lv/services/sports/event/v2/events/" \
-           "A/description/basketball/nba?marketFilterId=def&preMatchOnly=true&lang=en"
+# pre_url = "https://www.bovada.lv/services/sports/event/v2/events/" \
+#            "A/description/basketball/nba?marketFilterId=def&preMatchOnly=true&lang=en"
+#
+# live_url = "https://www.bovada.lv/services/sports/event/v2/events/A/" \
+#             "description/basketball/nba?marketFilterId=def&liveOnly=true&lang=en"
 
 live_url = "https://www.bovada.lv/services/sports/event/v2/events/A/" \
-            "description/basketball/nba?marketFilterId=def&liveOnly=true&lang=en"
+           "description/basketball?marketFilterId=def&liveOnly=true&eventsLimit=8&lang=en"
 
-# live_url = "https://www.bovada.lv/services/sports/event/v2/events/A/" \
-#            "description/basketball?marketFilterId=def&liveOnly=true&eventsLimit=8&lang=en"
-
-# pre_url = "https://www.bovada.lv/services/sports/event/v2/events/A/" \
-#           "description/basketball?marketFilterId=def&preMatchOnly=true&eventsLimit=50&lang=en"
+pre_url = "https://www.bovada.lv/services/sports/event/v2/events/A/" \
+          "description/basketball?marketFilterId=def&preMatchOnly=true&eventsLimit=50&lang=en"
 
 
 scores_url = "https://services.bovada.lv/services/sports/results/api/v1/scores/"
@@ -25,34 +25,28 @@ scores_url = "https://services.bovada.lv/services/sports/results/api/v1/scores/"
 all_games = []
 headers = {'User-Agent': 'Mozilla/5.0'}
 
-
 # data[0]['events'][0]['displayGroups'][0]['markets']
+
 # TODO redo update, tries and excepts, add header function
 # TODO add a file write that prints a readable non epoch time
 # TODO convert last_mod_score to epoch
 # TODO add restart/timeout
 # TODO independent score checker
 # TODO 'EVEN' fix
+# TODO get_scores: separate Score class with its own update times,
 
-# add field: 1 for live, 0 for not live
-# get_scores: separate Score class with its own update times,
 
- #    tot_a = markets[2].away
-# IndexError: list index out of range
 class Lines:
     def __init__(self, json_game, access_time):
         self.updated = 0
 
-        [self.query_times, self.last_mod_lines, self.num_markets, self.a_odds_ml, self.h_odds_ml, self.a_deci_ml, self.h_deci_ml,
-        self.a_odds_ps, self.h_odds_ps,
-        self.a_deci_ps, self.h_deci_ps, self.a_hcap_ps, self.h_hcap_ps, 
-        self.a_odds_tot, self.h_odds_tot,
-        self.a_deci_tot, self.h_deci_tot, self.a_hcap_tot,
-        self.h_hcap_tot] = ([] for i in range(19))
+        [self.query_times, self.last_mod_lines, self.num_markets, self.a_odds_ml, self.h_odds_ml, self.a_deci_ml,
+            self.h_deci_ml, self.a_odds_ps, self.h_odds_ps, self.a_deci_ps, self.h_deci_ps, self.a_hcap_ps,
+            self.h_hcap_ps, self.a_odds_tot, self.h_odds_tot, self.a_deci_tot, self.h_deci_tot, self.a_hcap_tot,
+            self.h_hcap_tot] = ([] for i in range(19))
 
         self.param_list = \
             [
-                # self.query_times,
                 self.last_mod_lines, self.num_markets, self.a_odds_ml, self.h_odds_ml, self.a_deci_ml, self.h_deci_ml,
                 self.a_odds_ps, self.h_odds_ps,
                 self.a_deci_ps, self.h_deci_ps, self.a_hcap_ps, self.h_hcap_ps, 
@@ -61,34 +55,9 @@ class Lines:
                 self.h_hcap_tot]
 
     def update(self, json_game, access_time):
-        
-        self.updated = 0 
-
-        json_markets = json_game['displayGroups'][0]['markets']
-
-        markets = market_grab(json_markets)
-        blank = {"american": 0, "decimal": 0, "handicap": 0}
-        # by this point we should have guaranteed that there are no fields that will cause KeyErrors
-        # going to mistake
-        try:
-            ps = markets[0]
-            ml = markets[1]
-            tot = markets[2]
-        except IndexError:
-            tot = ml
-            tot = Market(blank, blank)
-
-        json_params = [json_game['lastModified'], json_game['numMarkets'], ml.away['american'],
-                       ml.home['american'], ml.away['decimal'], ml.home['decimal'], ps.away['american'],
-                       ps.home['american'], ps.away['decimal'], ps.home['decimal'], ps.away['handicap'],
-                       ps.home['handicap'], tot.away['american'], tot.home['american'], tot.away['decimal'],
-                       tot.home['decimal'], tot.away['handicap'], tot.home['handicap']]
-
-        # self.a_odds_ml, self.h_odds_ml, self.a_deci_ml, self.h_deci_ml, self.a_odds_ps, self.h_odds_ps,
-        # self.a_deci_ps, self.h_deci_ps, self.a_hcap_ps, self.h_hcap_ps, self.a_odds_tot, self.h_odds_tot,
-        # self.a_deci_tot, self.h_deci_tot, self.a_hcap_tot, self.h_hcap_tot
+        self.updated = 0
+        json_params = get_json_params(json_game)
         i = 0
-
         for param in self.param_list:
             if len(param) > 1:
                 if param[-1] == json_params[i]:
@@ -103,7 +72,32 @@ class Lines:
         for param in self.param_list:
             file.write(str(param[-1]))
             file.write(",")
-        # print("write_params called")
+
+
+def get_json_params(json):
+    j_markets = json['displayGroups'][0]['markets']
+
+    markets = market_grab(j_markets)
+    blank = {"american": 0, "decimal": 0, "handicap": 0}
+
+    try:
+        ps = markets[0]
+        ml = markets[1]
+        tot = markets[2]
+    except IndexError:
+        if ps is None:
+            ps = Market(blank, blank)
+        elif ml is None:
+            ml = Market(blank, blank)
+        else:
+            tot = Market(blank, blank)
+
+    jps = [json['lastModified'], json['numMarkets'], ml.away['american'], ml.home['american'],
+           ml.away['decimal'], ml.home['decimal'], ps.away['american'], ps.home['american'],
+           ps.away['decimal'], ps.home['decimal'], ps.away['handicap'], ps.home['handicap'],
+           tot.away['american'], tot.home['american'], tot.away['decimal'], tot.home['decimal'],
+           tot.away['handicap'], tot.home['handicap']]
+    return jps
 
 
 class Game:
@@ -113,7 +107,6 @@ class Game:
         self.a_team = json_game['description'].split('@')[0]
         self.h_team = json_game['description'].split('@')[1]
         self.start_time = json_game['startTime']
-        # self.live = live_check(json_game)
         self.scores = Score(self.game_id)
         self.lines = Lines(json_game, access_time)
         self.link = json_game['link']
@@ -129,21 +122,16 @@ class Game:
         file.write(str(self.start_time) + ",")
         delta = self.lines.last_mod_lines[-1] - self.start_time
         file.write(str(delta) + '\n')
-        """sport, game_id, a_team, h_team, time_cst, last_mod_score, quarter, secs, 
-        a_pts, h_score,  clock_dir, num_quarters, link, game_start_time"""
 
 
 class Score:
     def __init__(self, game_id):
 
         [self.last_mod_score, self.quarter, self.secs, self.a_pts, self.h_pts,
-                        self.status, self.dir_isdown, self.num_quarters] = (0 for i in range(8))
+            self.status, self.dir_isdown, self.num_quarters] = (0 for i in range(8))
 
         self.update_scores(game_id)
-
-        self.params = [self.last_mod_score, self.quarter, self.secs, self.a_pts, self.h_pts,
-                        self.status]
-                        # self.dir_isdown, self.num_quarters] - these really are more gunna be used for other sports, leaving them out for now
+        self.params = [self.last_mod_score, self.quarter, self.secs, self.a_pts, self.h_pts, self.status]
 
     def update_scores(self, game_id):
 
@@ -160,11 +148,6 @@ class Score:
             self.a_pts = data['latestScore']['visitor']
             self.h_pts = data['latestScore']['home']
 
-            if clock['isTicking'] == 'true':
-                self.is_ticking = 1
-            else:
-                self.is_ticking = 0
-
             if clock['direction'] == 'down':
                 self.dir_isdown = 1
             else:
@@ -175,12 +158,12 @@ class Score:
             else:
                 self.status = 0
         except:
-            [self.quarter, self.num_quarters, self.secs, self.is_ticking,
+            [self.quarter, self.num_quarters, self.secs,
              self.status, self.dir_isdown, self.last_mod_score,
-             self.a_pts, self.h_pts] = (0 for i in range(9))
+             self.a_pts, self.h_pts] = (0 for i in range(8))
 
-        self.params = [ self.last_mod_score, self.quarter, self.secs, self.a_pts, self.h_pts,
-                        self.status, self.dir_isdown, self.num_quarters]
+        self.params = [self.last_mod_score, self.quarter, self.secs, self.a_pts, self.h_pts,
+                       self.status, self.dir_isdown, self.num_quarters]
 
     def write_scores(self, file):
         for param in self.params:
@@ -313,8 +296,7 @@ def write_header(file):
     file.write("last_mod_lines, num_markets, a_odds_ml, h_odds_ml, a_deci_ml, h_deci_ml, ")
     file.write("a_odds_ps, h_odds_ps, a_deci_ps, h_deci_ps, a_hcap_ps, h_hcap_ps, a_odds_tot, ")
     file.write("h_odds_tot, a_deci_tot, h_deci_tot, a_hcap_tot, h_hcap_tot, ")
-    file.write("link, game_start_time, last_mod_to_start \n")
-    #last_mod_to_start is last_mod_lines - game_start_time
+    file.write("link, game_start_time, last_mod_to_start \n")  # last_mod_to_start is last_mod_lines - game_start_time
 
 
 def main(wait_time, file_name):
@@ -353,4 +335,4 @@ def main(wait_time, file_name):
                 game.write_game(file)
 
 
-main(1, "1 19 19")
+main(1, "Testing all basketball 1 19 19")
