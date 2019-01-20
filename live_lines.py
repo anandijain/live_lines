@@ -30,7 +30,7 @@ headers = {'User-Agent': 'Mozilla/5.0'}
 # TODO independent score checker
 # TODO 'EVEN' fix
 # TODO get_scores: separate Score class with its own update times,
-
+# TODO write the league, so as to differentiate between college and NBA
 
 class Lines:
     def __init__(self, json_game, access_time):
@@ -133,11 +133,10 @@ class Score:
     def update_scores(self, game_id):
 
         data = get_json(scores_url + game_id)
+        if data is None:
+            return
 
-        try:
-            clock = data['clock']
-        except TypeError:
-            pass
+        clock = data['clock']
         try:
             self.quarter = clock['periodNumber']
         except KeyError:
@@ -156,24 +155,22 @@ class Score:
             pass
         try:
             self.a_pts = data['latestScore']['visitor']
+            print(str(self.a_pts))
         except KeyError:
             pass
         try:
             self.h_pts = data['latestScore']['home']
         except KeyError:
             pass
-
         if data['gameStatus'] == "IN_PROGRESS":
             self.status = 1
         else:
             self.status = 0
-
         self.params = [self.last_mod_score, self.quarter, self.secs, self.a_pts, self.h_pts, self.status]
 
     def write_scores(self, file):
         for param in self.params:
             file.write(str(param) + ',')
-            # print(str(param))
 
 
 class Market:
@@ -186,11 +183,9 @@ def market_grab(markets):
     market_list = []
     data = {"american": 0, "decimal": 0, "handicap": 0}
     team_mkts = [data, data]
-
     for market in markets:
         outcomes = market['outcomes']
         i = 0
-
         for outcome in outcomes:
             try:
                 price = outcome['price']
@@ -200,7 +195,6 @@ def market_grab(markets):
             except KeyError:
                 pass
             i += 1
-
         m = Market(team_mkts[0], team_mkts[1])
         market_list.append(m)
     return market_list
@@ -208,9 +202,8 @@ def market_grab(markets):
 
 def live_check(event):
     try:
-        # print(event['gameStatus'])
         if event['gameStatus'] == "IN_PROGRESS":
-
+            event.status
             return 1
     except:
         return 0
@@ -283,7 +276,6 @@ def json_events():
     print(links)
     for link in links:
         pages.append(get_json(link))
-
     for page in pages:
         for league in page:
             games += league['events']
@@ -301,38 +293,25 @@ def write_header(file):
 
 def main(wait_time, file_name):
     counter = 0
-
     file = open_file(file_name)
     write_header(file)
-
     access_time = time.time()
     json_games = json_events()
-
     init_games(json_games, access_time)
-
     while True:
         access_time = time.time()
         events = json_events()
-
         cur_games(events, access_time)
         time.sleep(wait_time)
-
         print("counter: " + str(counter) + " time: " + str(time.localtime()))
         counter += 1
-
         if counter % 20 == 1:
-
             print("before" + str(len(all_games)))
-
             update_games_list(events)
-
             print("after" + str(len(all_games)))
-
         for game in all_games:
-
             if game.lines.updated == 1:
-
                 game.write_game(file)
 
 
-main(1, "Testing all basketball 6")
+main(1, "Testing all basketball 9")
