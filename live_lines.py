@@ -45,7 +45,7 @@ class Lines:
             [
                 self.last_mod_lines, self.num_markets, self.a_odds_ml, self.h_odds_ml, self.a_deci_ml, self.h_deci_ml,
                 self.a_odds_ps, self.h_odds_ps,
-                self.a_deci_ps, self.h_deci_ps, self.a_hcap_ps, self.h_hcap_ps, 
+                self.a_deci_ps, self.h_deci_ps, self.a_hcap_ps, self.h_hcap_ps,
                 self.a_odds_tot, self.h_odds_tot,
                 self.a_deci_tot, self.h_deci_tot, self.a_hcap_tot,
                 self.h_hcap_tot]
@@ -133,7 +133,11 @@ class Score:
     def update_scores(self, game_id):
 
         data = get_json(scores_url + game_id)
-        clock = data['clock']
+
+        try:
+            clock = data['clock']
+        except TypeError:
+            pass
         try:
             self.quarter = clock['periodNumber']
         except KeyError:
@@ -193,7 +197,7 @@ def market_grab(markets):
                 team_mkts[i]['american'] = price['american']
                 team_mkts[i]['decimal'] = price['decimal']
                 team_mkts[i]['handicap'] = price['handicap']
-            except KeyError: 
+            except KeyError:
                 pass
             i += 1
 
@@ -331,4 +335,4 @@ def main(wait_time, file_name):
                 game.write_game(file)
 
 
-main(1, "Testing all basketball 4")
+main(1, "Testing all basketball 6")
