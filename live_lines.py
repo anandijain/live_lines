@@ -6,15 +6,16 @@ import requests
 save_path = r'C:\Users\Anand\PycharmProjects\live_lines\data'
 
 root_url = 'https://www.bovada.lv'
-links = ["https://www.bovada.lv/services/sports/event/v2/events/" \
-         "A/description/basketball/nba?marketFilterId=def&preMatchOnly=true&lang=en",
-         "https://www.bovada.lv/services/sports/event/v2/events/A/" \
-         "description/basketball/nba?marketFilterId=def&liveOnly=true&lang=en"]
 
 # links = ["https://www.bovada.lv/services/sports/event/v2/events/A/" \
-#          "description/basketball?marketFilterId=def&preMatchOnly=true&eventsLimit=50&lang=en",
-#          "https://www.bovada.lv/services/sports/event/v2/events/A/" \
-#          "description/basketball?marketFilterId=def&liveOnly=true&eventsLimit=8&lang=en"]
+#          "description/basketball/nba?marketFilterId=def&liveOnly=true&lang=en"
+#          "https://www.bovada.lv/services/sports/event/v2/events/" \
+#          "A/description/basketball/nba?marketFilterId=def&preMatchOnly=true&lang=en",]
+#
+links = ["https://www.bovada.lv/services/sports/event/v2/events/A/" \
+         "description/basketball?marketFilterId=def&liveOnly=true&eventsLimit=8&lang=en",
+         "https://www.bovada.lv/services/sports/event/v2/events/A/" \
+         "description/basketball?marketFilterId=def&preMatchOnly=true&eventsLimit=50&lang=en"]
 
 scores_url = "https://services.bovada.lv/services/sports/results/api/v1/scores/"
 
@@ -31,6 +32,7 @@ headers = {'User-Agent': 'Mozilla/5.0'}
 # TODO 'EVEN' fix
 # TODO get_scores: separate Score class with its own update times,
 # TODO write the league, so as to differentiate between college and NBA
+
 
 class Lines:
     def __init__(self, json_game, access_time):
@@ -135,8 +137,10 @@ class Score:
         data = get_json(scores_url + game_id)
         if data is None:
             return
-
-        clock = data['clock']
+        try:
+            clock = data['clock']
+        except KeyError:
+            return
         try:
             self.quarter = clock['periodNumber']
         except KeyError:
@@ -273,7 +277,6 @@ def init_games(json_games, access_time):
 def json_events():
     pages = []
     games = []
-    print(links)
     for link in links:
         pages.append(get_json(link))
     for page in pages:
@@ -314,4 +317,4 @@ def main(wait_time, file_name):
                 game.write_game(file)
 
 
-main(1, "Testing all basketball 9")
+main(1, "Testing all basketball 10")
