@@ -7,15 +7,15 @@ save_path = r'C:\Users\Anand\PycharmProjects\live_lines\data'
 
 root_url = 'https://www.bovada.lv'
 
-# links = ["https://www.bovada.lv/services/sports/event/v2/events/A/" \
-#          "description/basketball/nba?marketFilterId=def&liveOnly=true&lang=en"
-#          "https://www.bovada.lv/services/sports/event/v2/events/" \
-#          "A/description/basketball/nba?marketFilterId=def&preMatchOnly=true&lang=en",]
-#
 links = ["https://www.bovada.lv/services/sports/event/v2/events/A/" \
-         "description/basketball?marketFilterId=def&liveOnly=true&eventsLimit=8&lang=en",
-         "https://www.bovada.lv/services/sports/event/v2/events/A/" \
-         "description/basketball?marketFilterId=def&preMatchOnly=true&eventsLimit=50&lang=en"]
+         "description/basketball/nba?marketFilterId=def&liveOnly=true&lang=en" ,
+         "https://www.bovada.lv/services/sports/event/v2/events/" \
+         "A/description/basketball/nba?marketFilterId=def&preMatchOnly=true&lang=en"]
+#
+# links = ["https://www.bovada.lv/services/sports/event/v2/events/A/" \
+#          "description/basketball?marketFilterId=def&liveOnly=true&eventsLimit=8&lang=en",
+#          "https://www.bovada.lv/services/sports/event/v2/events/A/" \
+#          "description/basketball?marketFilterId=def&preMatchOnly=true&eventsLimit=50&lang=en"]
 
 scores_url = "https://services.bovada.lv/services/sports/results/api/v1/scores/"
 
@@ -55,6 +55,7 @@ class Lines:
     def update(self, json_game, access_time):
         self.updated = 0
         json_params = get_json_params(json_game)
+        print(str(json_params[2]))
         i = 0
         for param in self.param_list:
             if len(param) > 1:
@@ -69,33 +70,67 @@ class Lines:
     def write_params(self, file):
         for param in self.param_list:
             file.write(str(param[-1]))
+            # print(str(param[-1]))
             file.write(",")
 
 
 def get_json_params(json):
+
     j_markets = json['displayGroups'][0]['markets']
+    data = {"american": 0, "decimal": 0, "handicap": 0}
+    data2 = {"american": 0, "decimal": 0, "handicap": 0}
+    markets = []
+    ps = Market(data, data2)
+    markets.append(ps)
+    ml = Market(data, data2)
+    markets.append(ml)
+    tot = Market(data, data2)
+    markets.append(tot)
 
-    markets = market_grab(j_markets)
-    blank = {"american": 0, "decimal": 0, "handicap": 0}
+    i = 0
+    for market in j_markets:
 
-    try:
-        ps = markets[0]
-    except IndexError:
-        ps = Market(blank, blank)
-    try:
-        ml = markets[1]
-    except IndexError:
-        ml = Market(blank, blank)
-    try:
-        tot = markets[2]
-    except IndexError:
-        tot = Market(blank, blank)
+        outcomes = market['outcomes']
+        j = 0
+        away_price = outcomes[0]['price']
+        home_price = outcomes[1]['price']
+        mark = Market(away_price, home_price)
+        # print(str(away_price['american']))
+        # print(str(home_price['american']))
+        away_amer = away_price['american']
+        home_amer = home_price['american']
+        # print(str(away_amer))
+        # print(str(home_amer))
 
-    jps = [json['lastModified'], json['numMarkets'], ml.away['american'], ml.home['american'],
-           ml.away['decimal'], ml.home['decimal'], ps.away['american'], ps.home['american'],
-           ps.away['decimal'], ps.home['decimal'], ps.away['handicap'], ps.home['handicap'],
-           tot.away['american'], tot.home['american'], tot.away['decimal'], tot.home['decimal'],
-           tot.away['handicap'], tot.home['handicap']]
+        markets[i].away['american'] = away_amer
+
+        markets[i].away['decimal'] = away_price['decimal']
+
+        markets[i].home['american'] = home_amer
+
+        markets[i].home['decimal'] = home_price['decimal']
+        #
+        # print(str(markets[i].away['american']) + str(markets[i].home['american']))
+        # except KeyError:
+        #     pass
+        try:
+            markets[i].away['handicap'] = away_price['handicap']
+            markets[i].home['handicap'] = home_price['handicap']
+        except KeyError:
+            pass
+
+        markets.append(mark)
+        j += 1
+        i += 1
+    # print("ml" + str(ml.home['american']))
+    # print(str(ps.away['american']))
+    # print(str(tot.away['american']))
+    jps = [json['lastModified'], json['numMarkets'], markets[1].away['american'], markets[1].home['american'],
+           markets[1].away['decimal'], markets[1].home['decimal'], markets[0].away['american'], markets[0].home['american'],
+           markets[0].away['decimal'], markets[0].home['decimal'], markets[0].away['handicap'], markets[0].home['handicap'],
+           markets[2].away['american'], markets[2].home['american'], markets[2].away['decimal'], markets[2].home['decimal'],
+           markets[2].away['handicap'], markets[2].home['handicap']]
+    print(str(markets[1].away['american']))
     return jps
 
 
@@ -159,7 +194,7 @@ class Score:
             pass
         try:
             self.a_pts = data['latestScore']['visitor']
-            print(str(self.a_pts))
+            # print(str(self.a_pts))
         except KeyError:
             pass
         try:
@@ -183,24 +218,12 @@ class Market:
         self.home = home
 
 
-def market_grab(markets):
-    market_list = []
-    data = {"american": 0, "decimal": 0, "handicap": 0}
-    team_mkts = [data, data]
-    for market in markets:
-        outcomes = market['outcomes']
-        i = 0
-        for outcome in outcomes:
-            try:
-                price = outcome['price']
-                team_mkts[i]['american'] = price['american']
-                team_mkts[i]['decimal'] = price['decimal']
-                team_mkts[i]['handicap'] = price['handicap']
-            except KeyError:
-                pass
-            i += 1
-        m = Market(team_mkts[0], team_mkts[1])
-        market_list.append(m)
+def market_grab(markets, market_list):
+
+        # print(str(team_mkts[0]))
+        # print(str(team_mkts[1]))
+        # print(str(m.away))
+        # print(str(m.home))
     return market_list
 
 
@@ -295,12 +318,18 @@ def write_header(file):
 
 
 def main(wait_time, file_name):
+
     counter = 0
     file = open_file(file_name)
+
     write_header(file)
     access_time = time.time()
+
     json_games = json_events()
     init_games(json_games, access_time)
+
+    print("entering main loop")
+
     while True:
         access_time = time.time()
         events = json_events()
@@ -317,4 +346,4 @@ def main(wait_time, file_name):
                 game.write_game(file)
 
 
-main(1, "Testing all basketball 10")
+main(1, "REAL REAL REAL FR 9")
