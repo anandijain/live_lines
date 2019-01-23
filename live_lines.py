@@ -59,6 +59,7 @@ class Lines:
         for param in self.param_list:
             if len(param) > 1:
                 if param[-1] == json_params[i]:
+                    print('skipping' + str(i))
                     continue
             if json_params[i] is None:
                 json_params[i] = "?"
