@@ -55,7 +55,6 @@ class Lines:
     def update(self, json_game, access_time):
         self.updated = 0
         json_params = get_json_params(json_game)
-        # print(str(json_params[2]))
         i = 0
         for param in self.param_list:
             if len(param) > 1:
@@ -70,7 +69,6 @@ class Lines:
     def write_params(self, file):
         for param in self.param_list:
             file.write(str(param[-1]))
-            # print(str(param[-1]))
             file.write(",")
 
 
@@ -110,45 +108,11 @@ def get_json_params(json):
         elif desc == 'Total':
             tot.update(away_price, home_price)
 
-
-        # markets.append(Market(away_price, home_price))
-        # print(str(away_price['american']))
-        # print(str(home_price['american']))
-        # away_amer = away_price['american']
-        # home_amer = home_price['american']
-        # print(str(away_amer))
-        # print(str(home_amer))
-
-
-        # markets[i].away['american'] = away_amer
-        #
-        # markets[i].away['decimal'] = away_price['decimal']
-        #
-        # markets[i].home['american'] = home_amer
-        #
-        # markets[i].home['decimal'] = home_price['decimal']
-        #
-        # print(str(markets[i].away['american']) + str(markets[i].home['american']))
-        # except KeyError:
-        #     pass
-        # try:
-        #     markets[i].away['handicap'] = away_price['handicap']
-        #     markets[i].home['handicap'] = home_price['handicap']
-        # except KeyError:
-        #     pass
-
-        # markets.append(mark)
-        # j += 1
-        # i += 1
-    # print("ml" + str(ml.home['american']))
-    # print(str(ps.away['american']))
-    # print(str(tot.away['american']))
     jps = [json['lastModified'], json['numMarkets'], markets[1].away['american'], markets[1].home['american'],
            markets[1].away['decimal'], markets[1].home['decimal'], markets[0].away['american'], markets[0].home['american'],
            markets[0].away['decimal'], markets[0].home['decimal'], markets[0].away['handicap'], markets[0].home['handicap'],
            markets[2].away['american'], markets[2].home['american'], markets[2].away['decimal'], markets[2].home['decimal'],
            markets[2].away['handicap'], markets[2].home['handicap']]
-    print(str(markets[1].away['american']))
     return jps
 
 
@@ -238,15 +202,6 @@ class Market:
     def update(self, away, home):
         self.away = away
         self.home = home
-
-
-def market_grab(markets, market_list):
-
-        # print(str(team_mkts[0]))
-        # print(str(team_mkts[1]))
-        # print(str(m.away))
-        # print(str(m.home))
-    return market_list
 
 
 def live_check(event):
