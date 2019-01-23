@@ -3,19 +3,19 @@ import time
 import os.path
 import requests
 
-save_path = r'C:\Users\Anand\PycharmProjects\live_lines\data'
+save_path = '/home/sippycups/Programming/PycharmProjects/live_lines/data'
 
 root_url = 'https://www.bovada.lv'
 
-links = ["https://www.bovada.lv/services/sports/event/v2/events/A/" \
-         "description/basketball/nba?marketFilterId=def&liveOnly=true&lang=en" ,
-         "https://www.bovada.lv/services/sports/event/v2/events/" \
-         "A/description/basketball/nba?marketFilterId=def&preMatchOnly=true&lang=en"]
-#
 # links = ["https://www.bovada.lv/services/sports/event/v2/events/A/" \
-#          "description/basketball?marketFilterId=def&liveOnly=true&eventsLimit=8&lang=en",
-#          "https://www.bovada.lv/services/sports/event/v2/events/A/" \
-#          "description/basketball?marketFilterId=def&preMatchOnly=true&eventsLimit=50&lang=en"]
+#          "description/basketball/nba?marketFilterId=def&liveOnly=true&lang=en",
+#          "https://www.bovada.lv/services/sports/event/v2/events/" \
+#          "A/description/basketball/nba?marketFilterId=def&preMatchOnly=true&lang=en"]
+#
+links = ["https://www.bovada.lv/services/sports/event/v2/events/A/" \
+         "description/basketball?marketFilterId=def&liveOnly=true&eventsLimit=8&lang=en",
+         "https://www.bovada.lv/services/sports/event/v2/events/A/" \
+         "description/basketball?marketFilterId=def&preMatchOnly=true&eventsLimit=50&lang=en"]
 
 scores_url = "https://services.bovada.lv/services/sports/results/api/v1/scores/"
 
@@ -55,7 +55,7 @@ class Lines:
     def update(self, json_game, access_time):
         self.updated = 0
         json_params = get_json_params(json_game)
-        print(str(json_params[2]))
+        # print(str(json_params[2]))
         i = 0
         for param in self.param_list:
             if len(param) > 1:
@@ -89,39 +89,57 @@ def get_json_params(json):
 
     i = 0
     for market in j_markets:
-
         outcomes = market['outcomes']
-        j = 0
-        away_price = outcomes[0]['price']
-        home_price = outcomes[1]['price']
-        mark = Market(away_price, home_price)
+        desc = market.get('description')
+
+        try:
+            away_price = outcomes[0].get('price')
+        except IndexError:
+            away_price = data
+        try:
+            home_price = outcomes[1].get('price')
+        except IndexError:
+            home_price = data2
+
+        if desc is None:
+            continue
+        elif desc == 'Point Spread':
+            ps.update(away_price, home_price)
+        elif desc == 'Moneyline':
+            ml.update(away_price, home_price)
+        elif desc == 'Total':
+            tot.update(away_price, home_price)
+
+
+        # markets.append(Market(away_price, home_price))
         # print(str(away_price['american']))
         # print(str(home_price['american']))
-        away_amer = away_price['american']
-        home_amer = home_price['american']
+        # away_amer = away_price['american']
+        # home_amer = home_price['american']
         # print(str(away_amer))
         # print(str(home_amer))
 
-        markets[i].away['american'] = away_amer
 
-        markets[i].away['decimal'] = away_price['decimal']
-
-        markets[i].home['american'] = home_amer
-
-        markets[i].home['decimal'] = home_price['decimal']
+        # markets[i].away['american'] = away_amer
+        #
+        # markets[i].away['decimal'] = away_price['decimal']
+        #
+        # markets[i].home['american'] = home_amer
+        #
+        # markets[i].home['decimal'] = home_price['decimal']
         #
         # print(str(markets[i].away['american']) + str(markets[i].home['american']))
         # except KeyError:
         #     pass
-        try:
-            markets[i].away['handicap'] = away_price['handicap']
-            markets[i].home['handicap'] = home_price['handicap']
-        except KeyError:
-            pass
+        # try:
+        #     markets[i].away['handicap'] = away_price['handicap']
+        #     markets[i].home['handicap'] = home_price['handicap']
+        # except KeyError:
+        #     pass
 
-        markets.append(mark)
-        j += 1
-        i += 1
+        # markets.append(mark)
+        # j += 1
+        # i += 1
     # print("ml" + str(ml.home['american']))
     # print(str(ps.away['american']))
     # print(str(tot.away['american']))
@@ -214,6 +232,10 @@ class Score:
 
 class Market:
     def __init__(self, away, home):
+        self.away = away
+        self.home = home
+
+    def update(self, away, home):
         self.away = away
         self.home = home
 
@@ -346,4 +368,4 @@ def main(wait_time, file_name):
                 game.write_game(file)
 
 
-main(1, "REAL REAL REAL FR 9")
+main(1, "REAL REAL REAL FR 10")
