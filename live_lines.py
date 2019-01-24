@@ -289,12 +289,12 @@ def json_events():
 
 
 def write_header(file):
-    file.write("sport, game_id, a_team, h_team, ")
-    file.write("last_mod_score, quarter, secs, a_pts, h_pts, status, last_mod_to_start,")
-    file.write("last_mod_lines, num_markets, a_odds_ml, h_odds_ml, a_deci_ml, h_deci_ml, ")
-    file.write("a_odds_ps, h_odds_ps, a_deci_ps, h_deci_ps, a_hcap_ps, h_hcap_ps, a_odds_tot, ")
-    file.write("h_odds_tot, a_deci_tot, h_deci_tot, a_hcap_tot, h_hcap_tot, ")
-    file.write("link, game_start_time, \n")  # last_mod_to_start is last_mod_lines - game_start_time
+    file.write("sport,game_id,a_team,h_team,")
+    file.write("last_mod_score,quarter,secs,a_pts,h_pts,status,last_mod_to_start,")
+    file.write("last_mod_lines,num_markets,a_odds_ml,h_odds_ml,a_deci_ml,h_deci_ml,")
+    file.write("a_odds_ps,h_odds_ps,a_deci_ps,h_deci_ps,a_hcap_ps,h_hcap_ps,a_odds_tot,")
+    file.write("h_odds_tot,a_deci_tot,h_deci_tot,a_hcap_tot,h_hcap_tot,")
+    file.write("link,game_start_time\n")  # last_mod_to_start is last_mod_lines - game_start_time
 
 
 def main(wait_time, file_name):
