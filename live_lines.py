@@ -33,7 +33,9 @@ headers = {'User-Agent': 'Mozilla/5.0'}
 # TODO get_scores: separate Score class with its own update times,
 # TODO write the league, so as to differentiate between college and NBA
 # TODO add short circuit to the score updater, if last_mod_score == cur last mod score, then return.
-
+# TODO upon removing games that are no longer in json, this is a good point to calculate the actual profit of RL bot
+# TODO add feature to csv that is a binary saying if information is 0/missing. it will help correct
+#  for not knowing when lines close
 
 class Lines:
     def __init__(self, json_game, access_time):
