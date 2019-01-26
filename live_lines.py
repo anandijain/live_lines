@@ -285,9 +285,8 @@ def json_events():
     for page in pages:
         try:
             for league in page:
-                games += league.get('events')
+                games += league['events']
         except TypeError:
-            # time.sleep(1)
             pass
     return games
 
