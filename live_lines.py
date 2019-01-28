@@ -36,6 +36,8 @@ headers = {'User-Agent': 'Mozilla/5.0'}
 # TODO upon removing games that are no longer in json, this is a good point to calculate the actual profit of RL bot
 # TODO add feature to csv that is a binary saying if information is 0/missing. it will help correct
 #  for not knowing when lines close
+# TODO add Over Under field and use it for one hot encoding
+
 
 class Lines:
     def __init__(self, json_game, access_time):
@@ -67,6 +69,8 @@ class Lines:
                     continue
             if json_params[i] is None:
                 json_params[i] = "?"
+            # if json_params[i] is 'EVEN':  # this is a jank fix, really need to test for +,- or add field for O, U
+            #     json_params[i] = '-100'
             self.param_list[i].append(json_params[i])
             self.updated = 1
             i += 1
@@ -90,7 +94,6 @@ def get_json_params(json):
     tot = Market(data, data2)
     markets.append(tot)
 
-    i = 0
     for market in j_markets:
         outcomes = market['outcomes']
         desc = market.get('description')
@@ -149,14 +152,16 @@ class Score:
     def __init__(self, game_id):
 
         [self.last_mod_score, self.quarter, self.secs, self.a_pts, self.h_pts,
-            self.status, self.dir_isdown, self.num_quarters] = (0 for i in range(8))
+            self.status, self.dir_isdown, self.num_quarters, self.a_win, self.h_win] = (0 for i in range(10))
 
         self.update_scores(game_id)
-        self.params = [self.last_mod_score, self.quarter, self.secs, self.a_pts, self.h_pts, self.status]
+
+        self.params = [self.last_mod_score, self.quarter, self.secs, self.a_pts, self.h_pts, self.status, self.a_win, self.h_win]
 
     def update_scores(self, game_id):
 
         data = get_json(scores_url + game_id)
+
         if data is None:
             return
         try:
@@ -192,11 +197,28 @@ class Score:
             self.status = 1
         else:
             self.status = 0
-        self.params = [self.last_mod_score, self.quarter, self.secs, self.a_pts, self.h_pts, self.status]
+
+        self.win_check()
+
+        self.params = [self.last_mod_score, self.quarter, self.secs, self.a_pts, self.h_pts, self.status, self.a_win, self.h_win]
 
     def write_scores(self, file):
         for param in self.params:
             file.write(str(param) + ',')
+
+    def win_check(self):
+        # print('s')
+        # print(str(self.quarter) + ' ' + str(self.secs))
+        if self.quarter == 4 and self.secs == 0:  # this is only functional to games with 4 periods
+            print('endgame')
+            if self.a_pts > self.h_pts:
+                self.a_win = 1
+                self.h_win = 0
+                print("Away team wins!")
+            elif self.h_pts > self.a_pts:
+                self.a_win = 0
+                self.h_win = 1
+                print("Home team wins!")
 
 
 class Market:
@@ -295,7 +317,7 @@ def json_events():
 
 def write_header(file):
     file.write("sport,game_id,a_team,h_team,")
-    file.write("last_mod_score,quarter,secs,a_pts,h_pts,status,last_mod_to_start,")
+    file.write("last_mod_score,quarter,secs,a_pts,h_pts,status,a_win,h_win,last_mod_to_start,")
     file.write("last_mod_lines,num_markets,a_odds_ml,h_odds_ml,a_deci_ml,h_deci_ml,")
     file.write("a_odds_ps,h_odds_ps,a_deci_ps,h_deci_ps,a_hcap_ps,h_hcap_ps,a_odds_tot,")
     file.write("h_odds_tot,a_deci_tot,h_deci_tot,a_hcap_tot,h_hcap_tot,")
@@ -331,4 +353,4 @@ def main(wait_time, file_name):
                 game.write_game(file)
 
 
-main(1, "BASKETBALL_LIVE_LINES")
+main(1, "wintest_bask")
