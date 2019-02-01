@@ -7,15 +7,7 @@ save_path = '/home/sippycups/Programming/PycharmProjects/live_lines/data'
 
 root_url = 'https://www.bovada.lv'
 
-links = ["https://www.bovada.lv/services/sports/event/v2/events/A/" \
-         "description/basketball/nba?marketFilterId=def&liveOnly=true&lang=en",
-         "https://www.bovada.lv/services/sports/event/v2/events/" \
-         "A/description/basketball/nba?marketFilterId=def&preMatchOnly=true&lang=en"]
-#
-# links = ["https://www.bovada.lv/services/sports/event/v2/events/A/" \
-#          "description/basketball?marketFilterId=def&liveOnly=true&eventsLimit=8&lang=en",
-#          "https://www.bovada.lv/services/sports/event/v2/events/A/" \
-#          "description/basketball?marketFilterId=def&preMatchOnly=true&eventsLimit=50&lang=en"]
+
 
 scores_url = "https://services.bovada.lv/services/sports/results/api/v1/scores/"
 
@@ -161,38 +153,21 @@ class Score:
     def update_scores(self, game_id):
 
         data = get_json(scores_url + game_id)
-
         if data is None:
             return
-        try:
-            clock = data['clock']
-        except KeyError:
+
+        clock = data.get('clock')
+        if clock is None:
             return
-        try:
-            self.quarter = clock['periodNumber']
-        except KeyError:
-            pass
-        try:
-            self.num_quarters = clock['numberOfPeriods']
-        except KeyError:
-            pass
-        try:
-            self.secs = clock['relativeGameTimeInSecs']
-        except KeyError:
-            pass
-        try:
-            self.last_mod_score = data['lastUpdated']
-        except KeyError:
-            pass
-        try:
-            self.a_pts = data['latestScore']['visitor']
-            # print(str(self.a_pts))
-        except KeyError:
-            pass
-        try:
-            self.h_pts = data['latestScore']['home']
-        except KeyError:
-            pass
+
+        self.quarter = clock.get('periodNumber')
+        self.num_quarters = clock.get('numberOfPeriods')
+        self.secs = clock.get('relativeGameTimeInSecs')
+        self.last_mod_score = data['lastUpdated']
+        score = data.get('latestScore')
+        self.a_pts = score.get('visitor')
+        self.h_pts = score.get('home')
+
         if data['gameStatus'] == "IN_PROGRESS":
             self.status = 1
         else:
@@ -200,10 +175,13 @@ class Score:
 
         self.win_check()
 
-        self.params = [self.last_mod_score, self.quarter, self.secs, self.a_pts, self.h_pts, self.status, self.a_win, self.h_win]
+        self.params = [self.last_mod_score, self.quarter, self.secs, self.a_pts,
+                       self.h_pts, self.status, self.a_win, self.h_win]
 
     def write_scores(self, file):
         for param in self.params:
+            if param is None:
+                param = 0
             file.write(str(param) + ',')
 
     def win_check(self):
@@ -257,27 +235,36 @@ def write_json(file_name, json):
 
 
 class Sippy:
+    def __init__(self, file_name, header, is_nba, wait_time):
 
-    def __init__(self, file_name, header):
-        print("sippywoke")
+        print("~~~~sippywoke~~~~")
+
         self.games = []
+        self.set_league(is_nba)
+
+        self.wt = wait_time
+        self.counter = 0
+
         json_games = self.json_events()
-        file = open_file(file_name)
-        if header == 1:
-            self.write_header(file)
+        self.file = open_file(file_name)
+
         access_time = time.time()
         self.init_games(json_games, access_time)
 
-    def main(self, wait_time): # eventually main wont have a wait_time because wait 
-    # dependent on the queue and the Q space 
+        if header == 1:
+            self.write_header(self.file)
+
+    def main(self):  # eventually main wont have a wait_time because wait depnt on the queue and the Q space
+
         while True:
             print("entered main loop")
-            self.wt = wait_time
-            self.counter = 0
+
             access_time = time.time()
             events = self.json_events()
             self.cur_games(events, access_time)
-            time.sleep(wait_time)
+
+            time.sleep(self.wt)
+
             print("self.counter: " + str(self.counter) + " time: " + str(time.localtime()))
             self.counter += 1
             if self.counter % 20 == 1:
@@ -286,15 +273,15 @@ class Sippy:
                 print("after" + str(len(self.games)))
             for game in self.games:
                 if game.lines.updated == 1:
-                    game.write_game(file)
+                    game.write_game(self.file)
 
-    def write_header(file):
-        file.write("sport,game_id,a_team,h_team,")
-        file.write("last_mod_score,quarter,secs,a_pts,h_pts,status,a_win,h_win,last_mod_to_start,")
-        file.write("last_mod_lines,num_markets,a_odds_ml,h_odds_ml,a_deci_ml,h_deci_ml,")
-        file.write("a_odds_ps,h_odds_ps,a_deci_ps,h_deci_ps,a_hcap_ps,h_hcap_ps,a_odds_tot,")
-        file.write("h_odds_tot,a_deci_tot,h_deci_tot,a_hcap_tot,h_hcap_tot,")
-        file.write("link,game_start_time\n")  # last_mod_to_start is last_mod_lines - game_start_time 
+    def write_header(self):
+        self.file.write("sport,game_id,a_team,h_team,")
+        self.file.write("last_mod_score,quarter,secs,a_pts,h_pts,status,a_win,h_win,last_mod_to_start,")
+        self.file.write("last_mod_lines,num_markets,a_odds_ml,h_odds_ml,a_deci_ml,h_deci_ml,")
+        self.file.write("a_odds_ps,h_odds_ps,a_deci_ps,h_deci_ps,a_hcap_ps,h_hcap_ps,a_odds_tot,")
+        self.file.write("h_odds_tot,a_deci_tot,h_deci_tot,a_hcap_tot,h_hcap_tot,")
+        self.file.write("link,game_start_time\n")  # last_mod_to_start is last_mod_lines - game_start_time
 
     def cur_games(self, json_games, access_time):
         for event in json_games:
@@ -330,7 +317,7 @@ class Sippy:
     def json_events(self):
         pages = []
         games = []
-        for link in links:
+        for link in self.links:
             pages.append(get_json(link))
         for page in pages:
             try:
@@ -340,4 +327,15 @@ class Sippy:
                 pass
         return games
 
-# sip = Sippy()
+    def set_league(self, is_nba):
+        if is_nba == 1:
+            self.links = ["https://www.bovada.lv/services/sports/event/v2/events/A/" 
+                          "description/basketball/nba?marketFilterId=def&liveOnly=true&lang=en",
+                          "https://www.bovada.lv/services/sports/event/v2/events/" 
+                          "A/description/basketball/nba?marketFilterId=def&preMatchOnly=true&lang=en"]
+        else:
+            self.links = ["https://www.bovada.lv/services/sports/event/v2/events/A/" 
+                          "description/basketball?marketFilterId=def&liveOnly=true&eventsLimit=8&lang=en",
+                          "https://www.bovada.lv/services/sports/event/v2/events/A/" 
+                          "description/basketball?marketFilterId=def&preMatchOnly=true&eventsLimit=50&lang=en"]
+
