@@ -200,13 +200,13 @@ class Market:
 def req(url):
     try:
         r = requests.get(url, headers=headers, timeout=10)
-    except:
-        print("miss")
-    try:
-        data = r.json()
-    except:
-        data = None
-    return data
+    except ConnectionResetError:
+        print('miss')
+        return
+    except requests.exceptions.ConnectionError:
+        print('miss')
+        return
+    return r.json()
 
 
 def open_file(file_name):
@@ -237,7 +237,7 @@ class Sippy:
         if header == 1:
             self.write_header()
 
-    def shot(self):  # eventually main wont have a wait_time because wait depnt on the queue and the Q space
+    def step(self):  # eventually main wont have a wait_time because wait depnt on the queue and the Q space
         # print("entered main loop")
         access_time = time.time()
         self.json_events()
