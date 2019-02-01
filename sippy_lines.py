@@ -40,7 +40,7 @@ class Lines:
             self.h_hcap_ps, self.a_odds_tot, self.h_odds_tot, self.a_deci_tot, self.h_deci_tot, self.a_hcap_tot,
             self.h_hcap_tot] = ([] for i in range(19))
 
-        self.param_list = \
+        self.params = \
             [
                 self.last_mod_lines, self.num_markets, self.a_odds_ml, self.h_odds_ml, self.a_deci_ml, self.h_deci_ml,
                 self.a_odds_ps, self.h_odds_ps,
@@ -53,7 +53,7 @@ class Lines:
         self.updated = 0
         json_params = get_json_params(json_game)
         i = 0
-        for param in self.param_list:
+        for param in self.params:
             if len(param) > 1:
                 if param[-1] == json_params[i]:
                     i += 1
@@ -62,18 +62,17 @@ class Lines:
                 json_params[i] = "?"
             # if json_params[i] is 'EVEN':  # this is a jank fix, really need to test for +,- or add field for O, U
             #     json_params[i] = '-100'
-            self.param_list[i].append(json_params[i])
+            self.params[i].append(json_params[i])
             self.updated = 1
             i += 1
 
     def write_params(self, file):
-        for param in self.param_list:
+        for param in self.params:
             file.write(str(param[-1]))
             file.write(",")
 
 
 def get_json_params(json):
-
     j_markets = json['displayGroups'][0]['markets']
     data = {"american": 0, "decimal": 0, "handicap": 0}
     data2 = {"american": 0, "decimal": 0, "handicap": 0}
@@ -127,13 +126,13 @@ class Game:
         self.link = json_game['link']
 
     def write_game(self, file):
-        delta = self.lines.last_mod_lines[-1] - self.start_time
+        self.delta = self.lines.last_mod_lines[-1] - self.start_time
         file.write(self.sport + ",")
         file.write(self.game_id + ",")
         file.write(self.a_team + ",")
         file.write(self.h_team + ",")
         self.scores.write_scores(file)
-        file.write(str(delta) + ',')
+        file.write(str(self.delta) + ',')
         self.lines.write_params(file)
         file.write(self.link + ",")
         file.write(str(self.start_time) + "\n")
@@ -141,7 +140,6 @@ class Game:
 
 class Score:
     def __init__(self, game_id):
-
         [self.last_mod_score, self.quarter, self.secs, self.a_pts, self.h_pts,
             self.status, self.dir_isdown, self.num_quarters, self.a_win, self.h_win] = (0 for i in range(10))
 
@@ -151,7 +149,6 @@ class Score:
                        self.h_pts, self.status, self.a_win, self.h_win]
 
     def update_scores(self, game_id):
-
         data = get_json(scores_url + game_id)
         if data is None:
             return
@@ -247,12 +244,11 @@ class Sippy:
             self.write_header()
 
     def shot(self):  # eventually main wont have a wait_time because wait depnt on the queue and the Q space
-
         print("entered main loop")
 
         access_time = time.time()
         events = self.json_events()
-        self.cur_games(events, access_time)
+        self.cur_games(access_time)
 
         print("self.counter: " + str(self.counter) + " time: " + str(time.localtime()))
         self.counter += 1
