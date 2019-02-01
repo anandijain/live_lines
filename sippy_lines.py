@@ -234,20 +234,15 @@ def write_json(file_name, json):
 
 class Sippy:
     def __init__(self, file_name, header, is_nba):
-
         print("~~~~sippywoke~~~~")
-
         self.games = []
+        self.links = []
         self.set_league(is_nba)
-
         self.counter = 0
-
-        json_games = self.json_events()
+        self.json_games = self.json_events()
         self.file = open_file(file_name)
-
         access_time = time.time()
-        self.init_games(json_games, access_time)
-
+        self.init_games(access_time)
         if header == 1:
             self.write_header()
 
@@ -277,8 +272,8 @@ class Sippy:
         self.file.write("h_odds_tot,a_deci_tot,h_deci_tot,a_hcap_tot,h_hcap_tot,")
         self.file.write("link,game_start_time\n")  # last_mod_to_start is last_mod_lines - game_start_time
 
-    def cur_games(self, json_games, access_time):
-        for event in json_games:
+    def cur_games(self, access_time):
+        for event in self.json_games:
             exists = 0
             for game in self.games:
                 if event['id'] == game.game_id:
@@ -289,11 +284,11 @@ class Sippy:
             if exists == 0:
                 self.new_game(event, access_time)
 
-    def update_games_list(self, json_games):
+    def update_games_list(self):
         in_json = 0
         for game in self.games:
             game_id = game.game_id
-            for event in json_games:
+            for event in self.json_games:
                 if game_id == event['id']:
                     in_json = 1
                     break
@@ -304,8 +299,8 @@ class Sippy:
         x = Game(game, access_time)
         self.games.insert(0, x)
 
-    def init_games(self, json_games, access_time):
-        for event in json_games:
+    def init_games(self, access_time):
+        for event in self.json_games:
             self.new_game(event, access_time)
 
     def json_events(self):
