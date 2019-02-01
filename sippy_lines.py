@@ -19,7 +19,7 @@ links = ["https://www.bovada.lv/services/sports/event/v2/events/A/" \
 
 scores_url = "https://services.bovada.lv/services/sports/results/api/v1/scores/"
 
-all_games = []
+
 headers = {'User-Agent': 'Mozilla/5.0'}
 
 # data[0]['events'][0]['displayGroups'][0]['markets']
@@ -231,44 +231,9 @@ class Market:
         self.home = home
 
 
-def live_check(event):
-    try:
-        if event['gameStatus'] == "IN_PROGRESS":
-            event.status
-            return 1
-    except:
-        return 0
-    return 0
-
-
-def cur_games(json_games, access_time):
-    for event in json_games:
-        exists = 0
-        for game in all_games:
-            if event['id'] == game.game_id:
-                Lines.update(game.lines, event, access_time)
-                Score.update_scores(game.scores, event['id'])
-                exists = 1
-                break
-        if exists == 0:
-            new_game(event, access_time)
-
-
-def update_games_list(json_games):
-    in_json = 0
-    for game in all_games:
-        game_id = game.game_id
-        for event in json_games:
-            if game_id == event['id']:
-                in_json = 1
-                break
-        if in_json == 0:
-            all_games.remove(game)
-
-
 def get_json(url):
     try:
-        r = requests.get(url, headers=headers)
+        r = requests.get(url, headers=headers, timeout=10)
     except:
         print("miss")
     try:
@@ -291,66 +256,88 @@ def write_json(file_name, json):
     file.close()
 
 
-def new_game(game, access_time):
-    x = Game(game, access_time)
-    all_games.insert(0, x)
+class Sippy:
 
-
-def init_games(json_games, access_time):
-    for event in json_games:
-        new_game(event, access_time)
-
-
-def json_events():
-    pages = []
-    games = []
-    for link in links:
-        pages.append(get_json(link))
-    for page in pages:
-        try:
-            for league in page:
-                games += league['events']
-        except TypeError:
-            pass
-    return games
-
-
-def write_header(file):
-    file.write("sport,game_id,a_team,h_team,")
-    file.write("last_mod_score,quarter,secs,a_pts,h_pts,status,a_win,h_win,last_mod_to_start,")
-    file.write("last_mod_lines,num_markets,a_odds_ml,h_odds_ml,a_deci_ml,h_deci_ml,")
-    file.write("a_odds_ps,h_odds_ps,a_deci_ps,h_deci_ps,a_hcap_ps,h_hcap_ps,a_odds_tot,")
-    file.write("h_odds_tot,a_deci_tot,h_deci_tot,a_hcap_tot,h_hcap_tot,")
-    file.write("link,game_start_time\n")  # last_mod_to_start is last_mod_lines - game_start_time
-
-
-def main(wait_time, file_name):
-
-    counter = 0
-    file = open_file(file_name)
-
-    write_header(file)
-    access_time = time.time()
-
-    json_games = json_events()
-    init_games(json_games, access_time)
-
-    print("entering main loop")
-
-    while True:
+    def __init__(self, file_name, header):
+        print("sippywoke")
+        self.games = []
+        json_games = self.json_events()
+        file = open_file(file_name)
+        if header == 1:
+            self.write_header(file)
         access_time = time.time()
-        events = json_events()
-        cur_games(events, access_time)
-        time.sleep(wait_time)
-        print("counter: " + str(counter) + " time: " + str(time.localtime()))
-        counter += 1
-        if counter % 20 == 1:
-            print("before" + str(len(all_games)))
-            update_games_list(events)
-            print("after" + str(len(all_games)))
-        for game in all_games:
-            if game.lines.updated == 1:
-                game.write_game(file)
+        self.init_games(json_games, access_time)
 
+    def main(self, wait_time): # eventually main wont have a wait_time because wait 
+    # dependent on the queue and the Q space 
+        while True:
+            print("entered main loop")
+            self.wt = wait_time
+            self.counter = 0
+            access_time = time.time()
+            events = self.json_events()
+            self.cur_games(events, access_time)
+            time.sleep(wait_time)
+            print("self.counter: " + str(self.counter) + " time: " + str(time.localtime()))
+            self.counter += 1
+            if self.counter % 20 == 1:
+                print("before" + str(len(self.games)))
+                self.update_games_list(events)
+                print("after" + str(len(self.games)))
+            for game in self.games:
+                if game.lines.updated == 1:
+                    game.write_game(file)
 
-main(1, "OUTPUT_NBA")
+    def write_header(file):
+        file.write("sport,game_id,a_team,h_team,")
+        file.write("last_mod_score,quarter,secs,a_pts,h_pts,status,a_win,h_win,last_mod_to_start,")
+        file.write("last_mod_lines,num_markets,a_odds_ml,h_odds_ml,a_deci_ml,h_deci_ml,")
+        file.write("a_odds_ps,h_odds_ps,a_deci_ps,h_deci_ps,a_hcap_ps,h_hcap_ps,a_odds_tot,")
+        file.write("h_odds_tot,a_deci_tot,h_deci_tot,a_hcap_tot,h_hcap_tot,")
+        file.write("link,game_start_time\n")  # last_mod_to_start is last_mod_lines - game_start_time 
+
+    def cur_games(self, json_games, access_time):
+        for event in json_games:
+            exists = 0
+            for game in self.games:
+                if event['id'] == game.game_id:
+                    Lines.update(game.lines, event, access_time)
+                    Score.update_scores(game.scores, event['id'])
+                    exists = 1
+                    break
+            if exists == 0:
+                self.new_game(event, access_time)
+
+    def update_games_list(self, json_games):
+        in_json = 0
+        for game in self.games:
+            game_id = game.game_id
+            for event in json_games:
+                if game_id == event['id']:
+                    in_json = 1
+                    break
+            if in_json == 0:
+                self.games.remove(game)
+
+    def new_game(self, game, access_time):
+        x = Game(game, access_time)
+        self.games.insert(0, x)
+
+    def init_games(self, json_games, access_time):
+        for event in json_games:
+            self.new_game(event, access_time)
+
+    def json_events(self):
+        pages = []
+        games = []
+        for link in links:
+            pages.append(get_json(link))
+        for page in pages:
+            try:
+                for league in page:
+                    games += league['events']
+            except TypeError:
+                pass
+        return games
+
+# sip = Sippy()
