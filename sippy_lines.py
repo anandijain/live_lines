@@ -120,10 +120,12 @@ class Game:
         self.game_id = json_game['id']
         self.a_team = json_game['description'].split('@')[0]
         self.h_team = json_game['description'].split('@')[1]
+        self.teams = [self.a_team, self.h_team]
         self.start_time = json_game['startTime']
         self.scores = Score(self.game_id)
         self.lines = Lines(json_game, access_time)
         self.link = json_game['link']
+        self.delta = None
 
     def write_game(self, file):
         self.delta = self.lines.last_mod_lines[-1] - self.start_time
@@ -244,7 +246,7 @@ class Sippy:
             self.write_header()
 
     def shot(self):  # eventually main wont have a wait_time because wait depnt on the queue and the Q space
-        print("entered main loop")
+        # print("entered main loop")
 
         access_time = time.time()
         events = self.json_events()
@@ -254,7 +256,7 @@ class Sippy:
         self.counter += 1
         if self.counter % 20 == 1:
             print("before" + str(len(self.games)))
-            self.update_games_list(events)
+            self.update_games_list()
             print("after" + str(len(self.games)))
         for game in self.games:
             if game.lines.updated == 1:
