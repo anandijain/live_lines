@@ -56,7 +56,6 @@ class Lines:
         for param in self.param_list:
             if len(param) > 1:
                 if param[-1] == json_params[i]:
-                    # print('skipping' + str(i))
                     i += 1
                     continue
             if json_params[i] is None:
@@ -148,7 +147,8 @@ class Score:
 
         self.update_scores(game_id)
 
-        self.params = [self.last_mod_score, self.quarter, self.secs, self.a_pts, self.h_pts, self.status, self.a_win, self.h_win]
+        self.params = [self.last_mod_score, self.quarter, self.secs, self.a_pts,
+                       self.h_pts, self.status, self.a_win, self.h_win]
 
     def update_scores(self, game_id):
 
@@ -185,8 +185,6 @@ class Score:
             file.write(str(param) + ',')
 
     def win_check(self):
-        # print('s')
-        # print(str(self.quarter) + ' ' + str(self.secs))
         if self.quarter == 4 and self.secs == 0:  # this only works w games with 4 periods
             print('endgame')
             if self.a_pts > self.h_pts:
@@ -235,14 +233,13 @@ def write_json(file_name, json):
 
 
 class Sippy:
-    def __init__(self, file_name, header, is_nba, wait_time):
+    def __init__(self, file_name, header, is_nba):
 
         print("~~~~sippywoke~~~~")
 
         self.games = []
         self.set_league(is_nba)
 
-        self.wt = wait_time
         self.counter = 0
 
         json_games = self.json_events()
@@ -252,28 +249,25 @@ class Sippy:
         self.init_games(json_games, access_time)
 
         if header == 1:
-            self.write_header(self.file)
+            self.write_header()
 
-    def main(self):  # eventually main wont have a wait_time because wait depnt on the queue and the Q space
+    def shot(self):  # eventually main wont have a wait_time because wait depnt on the queue and the Q space
 
-        while True:
-            print("entered main loop")
+        print("entered main loop")
 
-            access_time = time.time()
-            events = self.json_events()
-            self.cur_games(events, access_time)
+        access_time = time.time()
+        events = self.json_events()
+        self.cur_games(events, access_time)
 
-            time.sleep(self.wt)
-
-            print("self.counter: " + str(self.counter) + " time: " + str(time.localtime()))
-            self.counter += 1
-            if self.counter % 20 == 1:
-                print("before" + str(len(self.games)))
-                self.update_games_list(events)
-                print("after" + str(len(self.games)))
-            for game in self.games:
-                if game.lines.updated == 1:
-                    game.write_game(self.file)
+        print("self.counter: " + str(self.counter) + " time: " + str(time.localtime()))
+        self.counter += 1
+        if self.counter % 20 == 1:
+            print("before" + str(len(self.games)))
+            self.update_games_list(events)
+            print("after" + str(len(self.games)))
+        for game in self.games:
+            if game.lines.updated == 1:
+                game.write_game(self.file)
 
     def write_header(self):
         self.file.write("sport,game_id,a_team,h_team,")
