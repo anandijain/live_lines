@@ -1,20 +1,11 @@
-# new live lines
 import time
 import os.path
 import requests
 
 save_path = '/home/sippycups/Programming/PycharmProjects/live_lines/data'
-
 root_url = 'https://www.bovada.lv'
-
-
-
 scores_url = "https://services.bovada.lv/services/sports/results/api/v1/scores/"
-
-
 headers = {'User-Agent': 'Mozilla/5.0'}
-
-# data[0]['events'][0]['displayGroups'][0]['markets']
 
 # TODO redo update, tries and excepts, add header function
 # TODO add a file write that prints a readable non epoch time
@@ -51,7 +42,7 @@ class Lines:
 
     def update(self, json_game, access_time):
         self.updated = 0
-        json_params = get_json_params(json_game)
+        json_params = jparams(json_game)
         i = 0
         for param in self.params:
             if len(param) > 1:
@@ -72,7 +63,7 @@ class Lines:
             file.write(",")
 
 
-def get_json_params(json):
+def jparams(json):
     j_markets = json['displayGroups'][0]['markets']
     data = {"american": 0, "decimal": 0, "handicap": 0}
     data2 = {"american": 0, "decimal": 0, "handicap": 0}
@@ -151,7 +142,7 @@ class Score:
                        self.h_pts, self.status, self.a_win, self.h_win]
 
     def update_scores(self, game_id):
-        data = get_json(scores_url + game_id)
+        data = req(scores_url + game_id)
         if data is None:
             return
 
@@ -206,7 +197,7 @@ class Market:
         self.home = home
 
 
-def get_json(url):
+def req(url):
     try:
         r = requests.get(url, headers=headers, timeout=10)
     except:
@@ -236,9 +227,10 @@ class Sippy:
         print("~~~~sippywoke~~~~")
         self.games = []
         self.links = []
+        self.events = []
+        self.json_events()
         self.set_league(is_nba)
         self.counter = 0
-        self.json_games = self.json_events()
         self.file = open_file(file_name)
         access_time = time.time()
         self.init_games(access_time)
@@ -247,9 +239,8 @@ class Sippy:
 
     def shot(self):  # eventually main wont have a wait_time because wait depnt on the queue and the Q space
         # print("entered main loop")
-
         access_time = time.time()
-        events = self.json_events()
+        self.json_events()
         self.cur_games(access_time)
 
         print("self.counter: " + str(self.counter) + " time: " + str(time.localtime()))
@@ -271,7 +262,7 @@ class Sippy:
         self.file.write("link,game_start_time\n")  # last_mod_to_start is last_mod_lines - game_start_time
 
     def cur_games(self, access_time):
-        for event in self.json_games:
+        for event in self.events:
             exists = 0
             for game in self.games:
                 if event['id'] == game.game_id:
@@ -286,7 +277,7 @@ class Sippy:
         in_json = 0
         for game in self.games:
             game_id = game.game_id
-            for event in self.json_games:
+            for event in self.events:
                 if game_id == event['id']:
                     in_json = 1
                     break
@@ -298,21 +289,21 @@ class Sippy:
         self.games.insert(0, x)
 
     def init_games(self, access_time):
-        for event in self.json_games:
+        for event in self.events:
             self.new_game(event, access_time)
 
     def json_events(self):
         pages = []
         games = []
         for link in self.links:
-            pages.append(get_json(link))
+            pages.append(req(link))
         for page in pages:
             try:
                 for league in page:
                     games += league['events']
             except TypeError:
                 pass
-        return games
+        self.events = games
 
     def set_league(self, is_nba):
         if is_nba == 1:
