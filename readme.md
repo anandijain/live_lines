@@ -18,3 +18,17 @@ A set of simple commands to get somewhere is to:
     game.teams
     game.scores.a_pts
     game.scores.h_pts
+
+If a_pts and h_pts doesn't work, most likely there are no live games, you can check the odds like this:
+    
+    game.lines.a_odds_ml
+    game.lines.h_odds_ml
+
+
+If you want to run the tracker, first you'll prob have to change the file path at the top of the program, then:
+    
+    while True:
+        sip.step()
+   
+This class is supposed to be modeled after Markov decision processes and used in reinforcement learning.
+    
