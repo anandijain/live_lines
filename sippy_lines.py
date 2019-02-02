@@ -1,6 +1,7 @@
 import time
 import os.path
 import requests
+import argparse
 
 save_path = '/home/sippycups/Programming/PycharmProjects/live_lines/data'
 root_url = 'https://www.bovada.lv'
@@ -22,98 +23,9 @@ headers = {'User-Agent': 'Mozilla/5.0'}
 # TODO add Over Under field and use it for one hot encoding
 
 
-class Lines:
-    def __init__(self, json_game, access_time):
-        self.updated = 0
-
-        [self.query_times, self.last_mod_lines, self.num_markets, self.a_odds_ml, self.h_odds_ml, self.a_deci_ml,
-            self.h_deci_ml, self.a_odds_ps, self.h_odds_ps, self.a_deci_ps, self.h_deci_ps, self.a_hcap_ps,
-            self.h_hcap_ps, self.a_odds_tot, self.h_odds_tot, self.a_deci_tot, self.h_deci_tot, self.a_hcap_tot,
-            self.h_hcap_tot] = ([] for i in range(19))
-
-        self.params = \
-            [
-                self.last_mod_lines, self.num_markets, self.a_odds_ml, self.h_odds_ml, self.a_deci_ml, self.h_deci_ml,
-                self.a_odds_ps, self.h_odds_ps,
-                self.a_deci_ps, self.h_deci_ps, self.a_hcap_ps, self.h_hcap_ps,
-                self.a_odds_tot, self.h_odds_tot,
-                self.a_deci_tot, self.h_deci_tot, self.a_hcap_tot,
-                self.h_hcap_tot]
-
-    def update(self, json_game, access_time):
-        self.updated = 0
-        json_params = jparams(json_game)
-        # if json_params[0] ==
-
-        i = 0
-        for param in self.params:
-            if json_params[i] is None:              
-                json_params[i] = "0"
-            if len(param) > 1:
-                if param[-1] == json_params[i]:
-                    i += 1
-                    continue
-
-            # if json_params[i] is 'EVEN':  # this is a jank fix, really need to test for +,- or add field for O, U
-            #     json_params[i] = '-100'
-            self.params[i].append(json_params[i])
-            self.updated = 1
-            i += 1
-
-    def csv(self, file):
-        for param in self.params:
-            file.write(str(param[-1]))
-            file.write(",")
-
-    def info(self):
-        for param in self.params:
-            print(str(param) + ' | ',)
-
-
-def jparams(json):
-    j_markets = json['displayGroups'][0]['markets']
-    data = {"american": 0, "decimal": 0, "handicap": 0}
-    data2 = {"american": 0, "decimal": 0, "handicap": 0}
-    markets = []
-    ps = Market(data, data2)
-    markets.append(ps)
-    ml = Market(data, data2)
-    markets.append(ml)
-    tot = Market(data, data2)
-    markets.append(tot)
-
-    for market in j_markets:
-        outcomes = market['outcomes']
-        desc = market.get('description')
-
-        try:
-            away_price = outcomes[0].get('price')
-        except IndexError:
-            away_price = data
-        try:
-            home_price = outcomes[1].get('price')
-        except IndexError:
-            home_price = data2
-
-        if desc is None:
-            continue
-        elif desc == 'Point Spread':
-            ps.update(away_price, home_price)
-        elif desc == 'Moneyline':
-            ml.update(away_price, home_price)
-        elif desc == 'Total':
-            tot.update(away_price, home_price)
-
-    jps = [json['lastModified'], json['numMarkets'], markets[1].away['american'], markets[1].home['american'],
-           markets[1].away['decimal'], markets[1].home['decimal'], markets[0].away['american'], markets[0].home['american'],
-           markets[0].away['decimal'], markets[0].home['decimal'], markets[0].away['handicap'], markets[0].home['handicap'],
-           markets[2].away['american'], markets[2].home['american'], markets[2].away['decimal'], markets[2].home['decimal'],
-           markets[2].away['handicap'], markets[2].home['handicap']]
-    return jps
-
-
 class Game:
     def __init__(self, json_game, access_time):
+        self.init_time = access_time
         self.sport = json_game['sport']
         self.game_id = json_game['id']
         self.a_team = json_game['description'].split('@')[0]
@@ -121,7 +33,7 @@ class Game:
         self.teams = [self.a_team, self.h_team]
         self.start_time = json_game['startTime']
         self.scores = Score(self.game_id)
-        self.lines = Lines(json_game, access_time)
+        self.lines = Lines(json_game)
         self.link = json_game['link']
         self.delta = None
 
@@ -138,14 +50,100 @@ class Game:
         file.write(str(self.start_time) + "\n")
 
     def info(self):  # displays scores, lines
-        print(self.sport + " | ",)
-        print(self.game_id + " | ",)
-        print(self.a_team + " | ",)
-        print(self.h_team + " | ",)
+        print(self.sport, end=' | ')
+        print(self.game_id, end=' | ')
+        print(self.a_team, end=' | ')
+        print(self.h_team, end=' | ')
         self.scores.info()
-        print(str(self.delta) + ' | ',)
+        print(str(self.delta), end=' | ')
         self.lines.info()
         print(str(self.start_time) + "\n")
+
+
+class Lines:
+    def __init__(self, json):
+        self.updated = 0
+        self.json = json
+        self.jps = []
+
+        [self.query_times, self.last_mod_lines, self.num_markets, self.a_odds_ml, self.h_odds_ml, self.a_deci_ml,
+         self.h_deci_ml, self.a_odds_ps, self.h_odds_ps, self.a_deci_ps, self.h_deci_ps, self.a_hcap_ps,
+         self.h_hcap_ps, self.a_odds_tot, self.h_odds_tot, self.a_deci_tot, self.h_deci_tot, self.a_hcap_tot,
+         self.h_hcap_tot] = ([] for i in range(19))
+
+        self.params = [
+                     self.last_mod_lines, self.num_markets, self.a_odds_ml, self.h_odds_ml, self.a_deci_ml,
+                     self.h_deci_ml, self.a_odds_ps, self.h_odds_ps, self.a_deci_ps, self.h_deci_ps,
+                     self.a_hcap_ps, self.h_hcap_ps, self.a_odds_tot, self.h_odds_tot, self.a_deci_tot,
+                     self.h_deci_tot, self.a_hcap_tot, self.h_hcap_tot
+                      ]
+
+    def update(self, json):
+        self.updated = 0
+        self.json = json
+        self.jparams()
+        i = 0
+        for param in self.params:
+            if self.jps[i] is None:
+                self.jps[i] = "0"
+            if len(param) > 1:
+                if param[-1] == self.jps[i]:
+                    i += 1
+                    continue
+            # if json_params[i] is 'EVEN':  # this is a jank fix, really need to test for +,- or add field for O, U
+            #     json_params[i] = '-100'
+            self.params[i].append(self.jps[i])
+            self.updated = 1
+            i += 1
+
+    def jparams(self):
+        j_markets = self.json['displayGroups'][0]['markets']
+        data = {"american": 0, "decimal": 0, "handicap": 0}
+        data2 = {"american": 0, "decimal": 0, "handicap": 0}
+        mkts = []
+        ps = Market(data, data2)
+        mkts.append(ps)
+        ml = Market(data, data2)
+        mkts.append(ml)
+        tot = Market(data, data2)
+        mkts.append(tot)
+
+        for market in j_markets:
+            outcomes = market['outcomes']
+            desc = market.get('description')
+
+            try:
+                away_price = outcomes[0].get('price')
+            except IndexError:
+                away_price = data
+            try:
+                home_price = outcomes[1].get('price')
+            except IndexError:
+                home_price = data2
+
+            if desc is None:
+                continue
+            elif desc == 'Point Spread':
+                ps.update(away_price, home_price)
+            elif desc == 'Moneyline':
+                ml.update(away_price, home_price)
+            elif desc == 'Total':
+                tot.update(away_price, home_price)
+
+        self.jps = [self.json['lastModified'], self.json['numMarkets'], mkts[1].a['american'], mkts[1].h['american'],
+                    mkts[1].a['decimal'], mkts[1].h['decimal'], mkts[0].a['american'], mkts[0].h['american'],
+                    mkts[0].a['decimal'], mkts[0].h['decimal'], mkts[0].a['handicap'], mkts[0].h['handicap'],
+                    mkts[2].a['american'], mkts[2].h['american'], mkts[2].a['decimal'], mkts[2].h['decimal'],
+                    mkts[2].a['handicap'], mkts[2].h['handicap']]
+
+    def csv(self, file):
+        for param in self.params:
+            file.write(str(param[-1]))
+            file.write(",")
+
+    def info(self):
+        for param in self.params:
+            print(str(param), end=' | ')
 
 
 class Score:
@@ -154,12 +152,12 @@ class Score:
         [self.last_mod_score, self.quarter, self.secs, self.a_pts, self.h_pts,
             self.status, self.dir_isdown, self.num_quarters, self.a_win, self.h_win] = (0 for i in range(10))
 
-        self.update_scores(game_id)
+        self.update(game_id)
 
         self.params = [self.last_mod_score, self.quarter, self.secs, self.a_pts,
                        self.h_pts, self.status, self.a_win, self.h_win]
 
-    def update_scores(self, game_id):
+    def update(self, game_id):
         data = req(scores_url + game_id)
         if data is None:
             return
@@ -203,17 +201,17 @@ class Score:
         for param in self.params:
             if param is None:
                 param = 0
-            print(str(param) + ' | ',)
+            print(str(param), end=' | ')
 
 
 class Market:
     def __init__(self, away, home):
-        self.away = away
-        self.home = home
+        self.a = away
+        self.h = home
 
     def update(self, away, home):
-        self.away = away
-        self.home = home
+        self.a = away
+        self.h = home
 
 
 def req(url):
@@ -288,8 +286,10 @@ class Sippy:
             exists = 0
             for game in self.games:
                 if event['id'] == game.game_id:
-                    Lines.update(game.lines, event, access_time)
-                    Score.update_scores(game.scores, event['id'])
+                    game.lines.update(event)
+                    game.scores.update(game.game_id)
+                    # Lines.update(game.lines, event)
+                    # Score.update(game.scores, event['id'])
                     exists = 1
                     break
             if exists == 0:
