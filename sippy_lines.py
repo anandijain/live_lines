@@ -43,14 +43,17 @@ class Lines:
     def update(self, json_game, access_time):
         self.updated = 0
         json_params = jparams(json_game)
+        # if json_params[0] ==
+
         i = 0
         for param in self.params:
+            if json_params[i] is None:              
+                json_params[i] = "0"
             if len(param) > 1:
                 if param[-1] == json_params[i]:
                     i += 1
                     continue
-            if json_params[i] is None:
-                json_params[i] = "?"
+
             # if json_params[i] is 'EVEN':  # this is a jank fix, really need to test for +,- or add field for O, U
             #     json_params[i] = '-100'
             self.params[i].append(json_params[i])
@@ -133,6 +136,7 @@ class Game:
 
 class Score:
     def __init__(self, game_id):
+        
         [self.last_mod_score, self.quarter, self.secs, self.a_pts, self.h_pts,
             self.status, self.dir_isdown, self.num_quarters, self.a_win, self.h_win] = (0 for i in range(10))
 
@@ -154,6 +158,7 @@ class Score:
         self.num_quarters = clock.get('numberOfPeriods')
         self.secs = clock.get('relativeGameTimeInSecs')
         self.last_mod_score = data['lastUpdated']
+
         score = data.get('latestScore')
         self.a_pts = score.get('visitor')
         self.h_pts = score.get('home')
@@ -228,8 +233,8 @@ class Sippy:
         self.games = []
         self.links = []
         self.events = []
-        self.json_events()
         self.set_league(is_nba)
+        self.json_events()
         self.counter = 0
         self.file = open_file(file_name)
         access_time = time.time()
@@ -244,14 +249,17 @@ class Sippy:
         self.cur_games(access_time)
 
         print("self.counter: " + str(self.counter) + " time: " + str(time.localtime()))
+
         self.counter += 1
         if self.counter % 20 == 1:
             print("before" + str(len(self.games)))
             self.update_games_list()
             print("after" + str(len(self.games)))
+
         for game in self.games:
             if game.lines.updated == 1:
                 game.write_game(self.file)
+                game.lines.updated = 0
 
     def write_header(self):
         self.file.write("sport,game_id,a_team,h_team,")
