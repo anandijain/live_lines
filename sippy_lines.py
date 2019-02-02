@@ -60,10 +60,14 @@ class Lines:
             self.updated = 1
             i += 1
 
-    def write_params(self, file):
+    def csv(self, file):
         for param in self.params:
             file.write(str(param[-1]))
             file.write(",")
+
+    def info(self):
+        for param in self.params:
+            print(str(param) + ' | ',)
 
 
 def jparams(json):
@@ -127,11 +131,21 @@ class Game:
         file.write(self.game_id + ",")
         file.write(self.a_team + ",")
         file.write(self.h_team + ",")
-        self.scores.write_scores(file)
+        self.scores.csv(file)
         file.write(str(self.delta) + ',')
-        self.lines.write_params(file)
-        file.write(self.link + ",")
+        self.lines.csv(file)
+        # file.write(self.link + ",")
         file.write(str(self.start_time) + "\n")
+
+    def info(self):  # displays scores, lines
+        print(self.sport + " | ",)
+        print(self.game_id + " | ",)
+        print(self.a_team + " | ",)
+        print(self.h_team + " | ",)
+        self.scores.info()
+        print(str(self.delta) + ' | ',)
+        self.lines.info()
+        print(str(self.start_time) + "\n")
 
 
 class Score:
@@ -149,35 +163,23 @@ class Score:
         data = req(scores_url + game_id)
         if data is None:
             return
-
         clock = data.get('clock')
         if clock is None:
             return
-
         self.quarter = clock.get('periodNumber')
         self.num_quarters = clock.get('numberOfPeriods')
         self.secs = clock.get('relativeGameTimeInSecs')
         self.last_mod_score = data['lastUpdated']
-
         score = data.get('latestScore')
         self.a_pts = score.get('visitor')
         self.h_pts = score.get('home')
-
         if data['gameStatus'] == "IN_PROGRESS":
             self.status = 1
         else:
             self.status = 0
-
         self.win_check()
-
         self.params = [self.last_mod_score, self.quarter, self.secs, self.a_pts,
                        self.h_pts, self.status, self.a_win, self.h_win]
-
-    def write_scores(self, file):
-        for param in self.params:
-            if param is None:
-                param = 0
-            file.write(str(param) + ',')
 
     def win_check(self):
         if self.quarter == 4 and self.secs == 0:  # this only works w games with 4 periods
@@ -190,6 +192,18 @@ class Score:
                 self.a_win = 0
                 self.h_win = 1
                 print("Home team wins!")
+
+    def csv(self, file):
+        for param in self.params:
+            if param is None:
+                param = 0
+            file.write(str(param) + ',')
+
+    def info(self):
+        for param in self.params:
+            if param is None:
+                param = 0
+            print(str(param) + ' | ',)
 
 
 class Market:
@@ -267,7 +281,7 @@ class Sippy:
         self.file.write("last_mod_lines,num_markets,a_odds_ml,h_odds_ml,a_deci_ml,h_deci_ml,")
         self.file.write("a_odds_ps,h_odds_ps,a_deci_ps,h_deci_ps,a_hcap_ps,h_hcap_ps,a_odds_tot,")
         self.file.write("h_odds_tot,a_deci_tot,h_deci_tot,a_hcap_tot,h_hcap_tot,")
-        self.file.write("link,game_start_time\n")  # last_mod_to_start is last_mod_lines - game_start_time
+        self.file.write("game_start_time\n")  # last_mod_to_start is last_mod_lines - game_start_time
 
     def cur_games(self, access_time):
         for event in self.events:
