@@ -23,6 +23,107 @@ headers = {'User-Agent': 'Mozilla/5.0'}
 # TODO add Over Under field and use it for one hot encoding
 
 
+class Sippy:
+    def __init__(self, file_name, header, is_nba):
+        print("~~~~sippywoke~~~~")
+        self.games = []
+        self.links = []
+        self.events = []
+        self.set_league(is_nba)
+        self.json_events()
+        self.counter = 0
+        self.file = open_file(file_name)
+        access_time = time.time()
+        self.init_games(access_time)
+        if header == 1:
+            self.write_header()
+
+    def step(self):  # eventually main wont have a wait_time because wait depnt on the queue and the Q space
+        # print("entered main loop")
+        access_time = time.time()
+        self.json_events()
+        self.cur_games(access_time)
+
+        print("self.counter: " + str(self.counter) + " time: " + str(time.localtime()))
+
+        self.counter += 1
+        if self.counter % 20 == 1:
+            print("before" + str(len(self.games)))
+            self.update_games_list()
+            print("after" + str(len(self.games)))
+
+        for game in self.games:
+            if game.lines.updated == 1:
+                game.write_game(self.file)
+                game.lines.updated = 0
+
+    def write_header(self):
+        self.file.write("sport,game_id,a_team,h_team,")
+        self.file.write("last_mod_score,quarter,secs,a_pts,h_pts,status,a_win,h_win,last_mod_to_start,")
+        self.file.write("last_mod_lines,num_markets,a_odds_ml,h_odds_ml,a_deci_ml,h_deci_ml,")
+        self.file.write("a_odds_ps,h_odds_ps,a_deci_ps,h_deci_ps,a_hcap_ps,h_hcap_ps,a_odds_tot,")
+        self.file.write("h_odds_tot,a_deci_tot,h_deci_tot,a_hcap_tot,h_hcap_tot,")
+        self.file.write("game_start_time\n")
+
+    def cur_games(self, access_time):
+        for event in self.events:
+            exists = 0
+            for game in self.games:
+                if event['id'] == game.game_id:
+                    game.lines.update(event)
+                    game.scores.update(game.game_id)
+                    # Lines.update(game.lines, event)
+                    # Score.update(game.scores, event['id'])
+                    exists = 1
+                    break
+            if exists == 0:
+                self.new_game(event, access_time)
+
+    def update_games_list(self):
+        in_json = 0
+        for game in self.games:
+            game_id = game.game_id
+            for event in self.events:
+                if game_id == event['id']:
+                    in_json = 1
+                    break
+            if in_json == 0:
+                self.games.remove(game)
+
+    def new_game(self, game, access_time):
+        x = Game(game, access_time)
+        self.games.insert(0, x)
+
+    def init_games(self, access_time):
+        for event in self.events:
+            self.new_game(event, access_time)
+
+    def json_events(self):
+        pages = []
+        games = []
+        for link in self.links:
+            pages.append(req(link))
+        for page in pages:
+            try:
+                for league in page:
+                    games += league['events']
+            except TypeError:
+                pass
+        self.events = games
+
+    def set_league(self, is_nba):
+        if is_nba == 1:
+            self.links = ["https://www.bovada.lv/services/sports/event/v2/events/A/" 
+                          "description/basketball/nba?marketFilterId=def&liveOnly=true&lang=en",
+                          "https://www.bovada.lv/services/sports/event/v2/events/" 
+                          "A/description/basketball/nba?marketFilterId=def&preMatchOnly=true&lang=en"]
+        else:
+            self.links = ["https://www.bovada.lv/services/sports/event/v2/events/A/" 
+                          "description/basketball?marketFilterId=def&liveOnly=true&eventsLimit=8&lang=en",
+                          "https://www.bovada.lv/services/sports/event/v2/events/A/" 
+                          "description/basketball?marketFilterId=def&preMatchOnly=true&eventsLimit=50&lang=en"]
+
+
 class Game:
     def __init__(self, json_game, access_time):
         self.init_time = access_time
@@ -148,36 +249,42 @@ class Lines:
 
 class Score:
     def __init__(self, game_id):
-        
         [self.last_mod_score, self.quarter, self.secs, self.a_pts, self.h_pts,
             self.status, self.dir_isdown, self.num_quarters, self.a_win, self.h_win] = (0 for i in range(10))
 
+        self.data = None
         self.update(game_id)
 
         self.params = [self.last_mod_score, self.quarter, self.secs, self.a_pts,
                        self.h_pts, self.status, self.a_win, self.h_win]
 
     def update(self, game_id):
-        data = req(scores_url + game_id)
-        if data is None:
+        self.data = req(scores_url + game_id)
+        if self.data is None:
             return
-        clock = data.get('clock')
+        clock = self.data.get('clock')
         if clock is None:
             return
-        self.quarter = clock.get('periodNumber')
-        self.num_quarters = clock.get('numberOfPeriods')
-        self.secs = clock.get('relativeGameTimeInSecs')
-        self.last_mod_score = data['lastUpdated']
-        score = data.get('latestScore')
-        self.a_pts = score.get('visitor')
-        self.h_pts = score.get('home')
-        if data['gameStatus'] == "IN_PROGRESS":
-            self.status = 1
-        else:
-            self.status = 0
+        self.metadata(clock)
+        self.get_score()
         self.win_check()
         self.params = [self.last_mod_score, self.quarter, self.secs, self.a_pts,
                        self.h_pts, self.status, self.a_win, self.h_win]
+
+    def metadata(self, clock):
+        self.quarter = clock.get('periodNumber')
+        self.num_quarters = clock.get('numberOfPeriods')
+        self.secs = clock.get('relativeGameTimeInSecs')
+        self.last_mod_score = self.data['lastUpdated']
+        if self.data['gameStatus'] == "IN_PROGRESS":
+            self.status = 1
+        else:
+            self.status = 0
+
+    def get_score(self):
+        score = self.data.get('latestScore')
+        self.a_pts = score.get('visitor')
+        self.h_pts = score.get('home')
 
     def win_check(self):
         if self.quarter == 4 and self.secs == 0:  # this only works w games with 4 periods
@@ -203,6 +310,10 @@ class Score:
                 param = 0
             print(str(param), end=' | ')
 
+    def score(self):
+        print(self.a_team + " " + str(self.a_pts))
+        print(self.h_team + " " + str(self.h_pts))
+
 
 class Market:
     def __init__(self, away, home):
@@ -218,6 +329,9 @@ def req(url):
     try:
         r = requests.get(url, headers=headers, timeout=10)
     except ConnectionResetError:
+        print('miss')
+        return
+    except requests.exceptions.Timeout:
         print('miss')
         return
     except requests.exceptions.ConnectionError:
@@ -237,105 +351,3 @@ def write_json(file_name, json):
     file.write(json)
     file.write('\n')
     file.close()
-
-
-class Sippy:
-    def __init__(self, file_name, header, is_nba):
-        print("~~~~sippywoke~~~~")
-        self.games = []
-        self.links = []
-        self.events = []
-        self.set_league(is_nba)
-        self.json_events()
-        self.counter = 0
-        self.file = open_file(file_name)
-        access_time = time.time()
-        self.init_games(access_time)
-        if header == 1:
-            self.write_header()
-
-    def step(self):  # eventually main wont have a wait_time because wait depnt on the queue and the Q space
-        # print("entered main loop")
-        access_time = time.time()
-        self.json_events()
-        self.cur_games(access_time)
-
-        print("self.counter: " + str(self.counter) + " time: " + str(time.localtime()))
-
-        self.counter += 1
-        if self.counter % 20 == 1:
-            print("before" + str(len(self.games)))
-            self.update_games_list()
-            print("after" + str(len(self.games)))
-
-        for game in self.games:
-            if game.lines.updated == 1:
-                game.write_game(self.file)
-                game.lines.updated = 0
-
-    def write_header(self):
-        self.file.write("sport,game_id,a_team,h_team,")
-        self.file.write("last_mod_score,quarter,secs,a_pts,h_pts,status,a_win,h_win,last_mod_to_start,")
-        self.file.write("last_mod_lines,num_markets,a_odds_ml,h_odds_ml,a_deci_ml,h_deci_ml,")
-        self.file.write("a_odds_ps,h_odds_ps,a_deci_ps,h_deci_ps,a_hcap_ps,h_hcap_ps,a_odds_tot,")
-        self.file.write("h_odds_tot,a_deci_tot,h_deci_tot,a_hcap_tot,h_hcap_tot,")
-        self.file.write("game_start_time\n")  # last_mod_to_start is last_mod_lines - game_start_time
-
-    def cur_games(self, access_time):
-        for event in self.events:
-            exists = 0
-            for game in self.games:
-                if event['id'] == game.game_id:
-                    game.lines.update(event)
-                    game.scores.update(game.game_id)
-                    # Lines.update(game.lines, event)
-                    # Score.update(game.scores, event['id'])
-                    exists = 1
-                    break
-            if exists == 0:
-                self.new_game(event, access_time)
-
-    def update_games_list(self):
-        in_json = 0
-        for game in self.games:
-            game_id = game.game_id
-            for event in self.events:
-                if game_id == event['id']:
-                    in_json = 1
-                    break
-            if in_json == 0:
-                self.games.remove(game)
-
-    def new_game(self, game, access_time):
-        x = Game(game, access_time)
-        self.games.insert(0, x)
-
-    def init_games(self, access_time):
-        for event in self.events:
-            self.new_game(event, access_time)
-
-    def json_events(self):
-        pages = []
-        games = []
-        for link in self.links:
-            pages.append(req(link))
-        for page in pages:
-            try:
-                for league in page:
-                    games += league['events']
-            except TypeError:
-                pass
-        self.events = games
-
-    def set_league(self, is_nba):
-        if is_nba == 1:
-            self.links = ["https://www.bovada.lv/services/sports/event/v2/events/A/" 
-                          "description/basketball/nba?marketFilterId=def&liveOnly=true&lang=en",
-                          "https://www.bovada.lv/services/sports/event/v2/events/" 
-                          "A/description/basketball/nba?marketFilterId=def&preMatchOnly=true&lang=en"]
-        else:
-            self.links = ["https://www.bovada.lv/services/sports/event/v2/events/A/" 
-                          "description/basketball?marketFilterId=def&liveOnly=true&eventsLimit=8&lang=en",
-                          "https://www.bovada.lv/services/sports/event/v2/events/A/" 
-                          "description/basketball?marketFilterId=def&preMatchOnly=true&eventsLimit=50&lang=en"]
-
