@@ -329,13 +329,16 @@ def req(url):
     try:
         r = requests.get(url, headers=headers, timeout=10)
     except ConnectionResetError:
-        print('miss')
+        print('connection reset error')
+        time.sleep(2)
         return
     except requests.exceptions.Timeout:
-        print('miss')
+        print('requests.exceptions timeout error')
+        time.sleep(2)
         return
     except requests.exceptions.ConnectionError:
-        print('miss')
+        print('connectionerror')
+        time.sleep(2)
         return
     return r.json()
 
