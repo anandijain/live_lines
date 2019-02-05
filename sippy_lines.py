@@ -70,7 +70,7 @@ class Sippy:
             for game in self.games:
                 if event['id'] == game.game_id:
                     game.lines.update(event)
-                    game.scores.update(game.game_id)
+                    game.scores.update()
                     exists = 1
                     break
             if exists == 0:
@@ -276,61 +276,68 @@ class Lines:
 class Score:
     def __init__(self, game_id):
         self.new = 1
+        self.game_id = game_id
         [self.last_mod_score, self.quarter, self.secs, self.a_pts, self.h_pts,
-            self.status, self.dir_isdown, self.num_quarters, self.a_win, self.h_win] = (0 for i in range(10))
-
+            self.status, self.dir_isdown, self.num_quarters, self.a_win, self.h_win] = ([] for i in range(10))
         self.data = None
-        self.update(game_id)
-
         self.params = [self.last_mod_score, self.quarter, self.secs, self.a_pts,
                        self.h_pts, self.status, self.a_win, self.h_win]
 
-    def update(self, game_id):
-        self.new = 0
-        self.data = req(scores_url + game_id)
+    def json(self):
+        self.data = req(scores_url + self.game_id)
         if self.data is None:
             return
+
+    def update(self):
+        self.new = 0
+        self.json()
         clock = self.data.get('clock')
         if clock is None:
             return
         self.metadata(clock)
         self.get_score()
         self.win_check()
-        self.params = [self.last_mod_score, self.quarter, self.secs, self.a_pts,
-                       self.h_pts, self.status, self.a_win, self.h_win]
 
     def metadata(self, clock):
-        self.quarter = clock.get('periodNumber')
-        self.num_quarters = clock.get('numberOfPeriods')
-        self.secs = clock.get('relativeGameTimeInSecs')
-        self.last_mod_score = self.data['lastUpdated']
+        last_updated = self.data['lastUpdated']
+        if len(self.last_mod_score) > 1:
+            if self.last_mod_score[-1] == last_updated:
+                self.new = 0
+                return
+        self.new = 1
+        self.quarter.append(clock.get('periodNumber'))
+        self.num_quarters.append(clock.get('numberOfPeriods'))
+        self.secs.append(clock.get('relativeGameTimeInSecs'))
+        self.last_mod_score.append(self.data['lastUpdated'])
         if self.data['gameStatus'] == "IN_PROGRESS":
-            self.status = 1
+            self.status.append(1)
         else:
-            self.status = 0
+            self.status.append(0)
 
     def get_score(self):
-        score = self.data.get('latestScore')
-        self.a_pts = score.get('visitor')
-        self.h_pts = score.get('home')
+        if self.new == 1:
+            score = self.data.get('latestScore')
+            self.a_pts.append(score.get('visitor'))
+            self.h_pts.append(score.get('home'))
 
     def win_check(self):
-        if self.quarter == 4 and self.secs == 0:  # this only works w games with 4 periods
+        if self.quarter[-1] == 4 and self.secs[-1] == 0:  # this only works w games with 4 periods
             print('endgame')
-            if self.a_pts > self.h_pts:
-                self.a_win = 1
-                self.h_win = 0
+            if self.a_pts[-1] > self.h_pts[-1]:
+                self.a_win.append(1)
+                self.h_win.append(0)
                 print("Away team wins!")
-            elif self.h_pts > self.a_pts:
-                self.a_win = 0
-                self.h_win = 1
+            elif self.h_pts[-1] > self.a_pts[-1]:
+                self.a_win.append(0)
+                self.h_win.append(1)
                 print("Home team wins!")
 
     def csv(self, file):
         for param in self.params:
-            if param is None:
-                param = 0
-            file.write(str(param) + ',')
+            if len(param) > 1:
+                if param is None:
+                    param = ''
+                file.write(str(param[-1]) + ',')
 
     def info(self):
         for param in self.params:
