@@ -9,8 +9,6 @@ root_url = 'https://www.bovada.lv'
 scores_url = "https://services.bovada.lv/services/sports/results/api/v1/scores/"
 headers = {'User-Agent': 'Mozilla/5.0'}
 
-# TODO redo update, tries and excepts, add header function
-# TODO add a file write that prints a readable non epoch time
 # TODO convert last_mod_score to epoch
 # TODO add restart/timeout
 # TODO independent score checker
@@ -130,7 +128,9 @@ class Game:
         self.game_id = json_game['id']
         self.desc = json_game['description']
         self.a_team = self.desc.split('@')[0]
+        self.a_team = self.a_team[:-1]
         self.h_team = self.desc.split('@')[1]
+        self.h_team = self.h_team[1:]
         self.teams = [self.a_team, self.h_team]
         self.start_time = json_game['startTime']
         self.scores = Score(self.game_id)
@@ -151,12 +151,14 @@ class Game:
         file.write(str(self.start_time) + "\n")
 
     def info(self):  # displays scores, lines
-        print(self.desc)
+        print('\n' + self.desc + '\n')
         print(self.sport, end='|')
         print(self.game_id, end='|')
         print(self.a_team, end='|')
         print(self.h_team, end='|')
+        print('\nScores info: ')
         self.scores.info()
+        print('Game line info: ')
         print(str(self.delta), end='|')
         self.lines.info()
         print(str(self.start_time) + "\n")
@@ -199,11 +201,13 @@ class Lines:
         self.updated = 0
         self.json = json
         self.jparams()
-        i = 0
+
         if len(self.params[0]) > 1:
             if self.jps[0] == self.params[0][-1]:
                 self.updated = 0
                 return
+
+        i = 0
         for param in self.params:
             if self.jps[i] is None:
                 self.jps[i] = "0"
@@ -262,7 +266,7 @@ class Lines:
 
     def info(self):
         for param in self.params:
-            print(str(param), end='|')
+            print(str(param[-1]), end='|')
 
     def odds(self):
         for elt in [self.last_mod_lines, self.a_odds_ml, self.h_odds_ml]:
