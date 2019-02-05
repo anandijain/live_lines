@@ -15,7 +15,7 @@ headers = {'User-Agent': 'Mozilla/5.0'}
 # TODO add restart/timeout
 # TODO independent score checker
 # TODO 'EVEN' fix
-# TODO get_scores: separate Score class with its own update times,
+# TODO fix scores class so that it stores a list of scores.
 # TODO write the league, so as to differentiate between college and NBA
 # TODO add short circuit to the score updater, if last_mod_score == cur last mod score, then return.
 # TODO upon removing games that are no longer in json, this is a good point to calculate the actual profit of RL bot
@@ -128,8 +128,9 @@ class Game:
         self.init_time = access_time
         self.sport = json_game['sport']
         self.game_id = json_game['id']
-        self.a_team = json_game['description'].split('@')[0]
-        self.h_team = json_game['description'].split('@')[1]
+        self.desc = json_game['description']
+        self.a_team = self.desc.split('@')[0]
+        self.h_team = self.desc.split('@')[1]
         self.teams = [self.a_team, self.h_team]
         self.start_time = json_game['startTime']
         self.scores = Score(self.game_id)
@@ -150,6 +151,7 @@ class Game:
         file.write(str(self.start_time) + "\n")
 
     def info(self):  # displays scores, lines
+        print(self.desc)
         print(self.sport, end='|')
         print(self.game_id, end='|')
         print(self.a_team, end='|')
@@ -158,6 +160,21 @@ class Game:
         print(str(self.delta), end='|')
         self.lines.info()
         print(str(self.start_time) + "\n")
+
+    def quick(self):
+        print(str(self.lines.last_mod_lines))
+        print(self.a_team, end=': ')
+        print(str(self.scores.a_pts) + ' ' + str(self.lines.a_odds_ml))
+        print(self.h_team, end=': ')
+        print(str(self.scores.h_pts) + ' ' + str(self.lines.h_odds_ml))
+
+    def score(self):
+        print(self.a_team + " " + str(self.scores.a_pts))
+        print(self.h_team + " " + str(self.scores.h_pts))
+
+    def odds(self):
+        print(self.a_team + " " + str(self.lines.odds()))
+        print(self.h_team + " " + str(self.lines.odds()))
 
 
 class Lines:
@@ -247,6 +264,10 @@ class Lines:
         for param in self.params:
             print(str(param), end='|')
 
+    def odds(self):
+        for elt in [self.last_mod_lines, self.a_odds_ml, self.h_odds_ml]:
+            print(str(elt), end='|')
+
 
 class Score:
     def __init__(self, game_id):
@@ -312,10 +333,7 @@ class Score:
             if param is None:
                 param = 0
             print(str(param), end='|')
-
-    def score(self):
-        print(self.a_team + " " + str(self.a_pts))
-        print(self.h_team + " " + str(self.h_pts))
+        print('\n')
 
 
 class Market:

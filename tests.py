@@ -7,5 +7,5 @@ class Test:
         self.sip = sl.Sippy(self.fn, 1, 1)
         self.sip.step()
         self.game = self.sip.games[0]
-        self.game.info()
+        # self.game.info()
 
