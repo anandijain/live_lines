@@ -338,6 +338,8 @@ class Score:
                 if param is None:
                     param = ''
                 file.write(str(param[-1]) + ',')
+            else:
+                file.write('0' + ',')
 
     def info(self):
         for param in self.params:
