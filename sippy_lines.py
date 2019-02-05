@@ -2,7 +2,6 @@ import time
 import os.path
 import requests
 import argparse
-# from pathlib import Path
 
 save_path = 'data'
 root_url = 'https://www.bovada.lv'
@@ -38,23 +37,24 @@ class Sippy:
             self.write_header()
 
     def step(self):  # eventually main wont have a wait_time because wait depnt on the queue and the Q space
-        # print("entered main loop")
         access_time = time.time()
         self.json_events()
         self.cur_games(access_time)
         time.sleep(1)
         print("self.counter: " + str(self.counter) + " time: " + str(time.localtime()))
-
         self.counter += 1
         if self.counter % 20 == 1:
             print("before" + str(len(self.games)))
             self.update_games_list()
             print("after" + str(len(self.games)))
-
         for game in self.games:
             if game.lines.updated == 1:
                 game.write_game(self.file)
                 game.lines.updated = 0
+
+    def run(self):
+        while True:
+            self.step()
 
     def write_header(self):
         self.file.write("sport,game_id,a_team,h_team,")
