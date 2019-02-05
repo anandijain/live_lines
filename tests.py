@@ -1,8 +1,11 @@
 import sippy_lines as sl
 
 
-def test(file_name):
-    sip = sl.Sippy(file_name,1,1)
-    sip.step()
-    game = sip.games[0]
-    game.info()
+class Test:
+    def __init__(self, file_name):
+        self.fn = file_name
+        self.sip = sl.Sippy(self.fn, 1, 1)
+        self.sip.step()
+        self.game = self.sip.games[0]
+        self.game.info()
+

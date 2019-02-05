@@ -2,8 +2,9 @@ import time
 import os.path
 import requests
 import argparse
+# from pathlib import Path
 
-save_path = '/home/sippycups/Programming/PycharmProjects/live_lines/data'
+save_path = 'data'
 root_url = 'https://www.bovada.lv'
 scores_url = "https://services.bovada.lv/services/sports/results/api/v1/scores/"
 headers = {'User-Agent': 'Mozilla/5.0'}
@@ -43,7 +44,7 @@ class Sippy:
         access_time = time.time()
         self.json_events()
         self.cur_games(access_time)
-
+        time.sleep(1)
         print("self.counter: " + str(self.counter) + " time: " + str(time.localtime()))
 
         self.counter += 1
@@ -72,8 +73,6 @@ class Sippy:
                 if event['id'] == game.game_id:
                     game.lines.update(event)
                     game.scores.update(game.game_id)
-                    # Lines.update(game.lines, event)
-                    # Score.update(game.scores, event['id'])
                     exists = 1
                     break
             if exists == 0:
@@ -151,12 +150,12 @@ class Game:
         file.write(str(self.start_time) + "\n")
 
     def info(self):  # displays scores, lines
-        print(self.sport, end=' | ')
-        print(self.game_id, end=' | ')
-        print(self.a_team, end=' | ')
-        print(self.h_team, end=' | ')
+        print(self.sport, end='|')
+        print(self.game_id, end='|')
+        print(self.a_team, end='|')
+        print(self.h_team, end='|')
         self.scores.info()
-        print(str(self.delta), end=' | ')
+        print(str(self.delta), end='|')
         self.lines.info()
         print(str(self.start_time) + "\n")
 
@@ -184,6 +183,10 @@ class Lines:
         self.json = json
         self.jparams()
         i = 0
+        if len(self.params[0]) > 1:
+            if self.jps[0] == self.params[0][-1]:
+                self.updated = 0
+                return
         for param in self.params:
             if self.jps[i] is None:
                 self.jps[i] = "0"
@@ -191,8 +194,6 @@ class Lines:
                 if param[-1] == self.jps[i]:
                     i += 1
                     continue
-            # if json_params[i] is 'EVEN':  # this is a jank fix, really need to test for +,- or add field for O, U
-            #     json_params[i] = '-100'
             self.params[i].append(self.jps[i])
             self.updated = 1
             i += 1
@@ -244,11 +245,12 @@ class Lines:
 
     def info(self):
         for param in self.params:
-            print(str(param), end=' | ')
+            print(str(param), end='|')
 
 
 class Score:
     def __init__(self, game_id):
+        self.new = 1
         [self.last_mod_score, self.quarter, self.secs, self.a_pts, self.h_pts,
             self.status, self.dir_isdown, self.num_quarters, self.a_win, self.h_win] = (0 for i in range(10))
 
@@ -259,6 +261,7 @@ class Score:
                        self.h_pts, self.status, self.a_win, self.h_win]
 
     def update(self, game_id):
+        self.new = 0
         self.data = req(scores_url + game_id)
         if self.data is None:
             return
@@ -308,7 +311,7 @@ class Score:
         for param in self.params:
             if param is None:
                 param = 0
-            print(str(param), end=' | ')
+            print(str(param), end='|')
 
     def score(self):
         print(self.a_team + " " + str(self.a_pts))
