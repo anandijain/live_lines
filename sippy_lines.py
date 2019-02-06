@@ -47,6 +47,7 @@ class Sippy:
             print("before" + str(len(self.games)))
             self.update_games_list()
             print("after" + str(len(self.games)))
+            self.file.flush()
         for game in self.games:
             if game.lines.updated == 1:
                 game.write_game(self.file)
