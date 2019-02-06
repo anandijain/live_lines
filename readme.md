@@ -3,6 +3,16 @@ live_lines is a tracker for bovada for basketball
 live_lines.py is deprecated.
 sippy_lines.py is current.
 
+The fastest way to run this is to run the following commands:
+First start python3
+
+import tests as t
+x = t.Test('0000', 1)  # the 1 is for specifying that you are only collecting NBA data
+x.run()
+
+now the data will export to /data/0000.csv
+
+
 
 Sippy is the main class that drives the scraper and can be used to access data on the live lines fairly easily. 
 Format of simple usage of main class:
