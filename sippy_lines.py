@@ -43,15 +43,18 @@ class Sippy:
         time.sleep(1)
         print("self.counter: " + str(self.counter) + " time: " + str(time.localtime()))
         self.counter += 1
+
         if self.counter % 20 == 1:
             print("before" + str(len(self.games)))
             self.update_games_list()
             print("after" + str(len(self.games)))
             self.file.flush()
+
         for game in self.games:
-            if game.lines.updated == 1 or game.scores.new == 1:
-                game.write_game(self.file)
-                game.lines.updated = 0
+            if self.counter > 1:
+                if game.lines.updated == 1 or game.scores.new == 1:
+                    game.write_game(self.file)
+                    game.lines.updated = 0
 
     def run(self):
         while True:
@@ -140,7 +143,10 @@ class Game:
         self.delta = None
 
     def write_game(self, file):
-        self.delta = self.lines.last_mod_lines[-1] - self.start_time
+        if len(self.lines.last_mod_lines) > 1:
+            self.delta = self.lines.last_mod_lines[-1] - self.start_time
+        else:
+            self.delta = '0s'
         file.write(self.sport + ",")
         file.write(self.game_id + ",")
         file.write(self.a_team + ",")
@@ -290,9 +296,9 @@ class Score:
     def update(self):
         self.new = 0
         self.json()
-        clock = self.data.get('clock')
         if self.data is None:
             return
+        clock = self.data.get('clock')
         if clock is None:
             return    
         self.metadata(clock)
