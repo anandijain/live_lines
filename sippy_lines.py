@@ -286,15 +286,15 @@ class Score:
 
     def json(self):
         self.data = req(scores_url + self.game_id)
-        if self.data is None:
-            return
 
     def update(self):
         self.new = 0
         self.json()
         clock = self.data.get('clock')
-        if clock is None:
+        if self.data is None:
             return
+        if clock is None:
+            return    
         self.metadata(clock)
         self.get_score()
         self.win_check()
