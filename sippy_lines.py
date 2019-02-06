@@ -49,7 +49,7 @@ class Sippy:
             print("after" + str(len(self.games)))
             self.file.flush()
         for game in self.games:
-            if game.lines.updated == 1 or games.scores.new == 1:
+            if game.lines.updated == 1 or game.scores.new == 1:
                 game.write_game(self.file)
                 game.lines.updated = 0
 
