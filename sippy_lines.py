@@ -51,7 +51,7 @@ class Sippy:
             self.file.flush()
 
         for game in self.games:
-            if self.counter > 1:
+            if len(game.) > 1:
                 if game.lines.updated == 1 or game.scores.new == 1:
                     game.write_game(self.file)
                     game.lines.updated = 0
@@ -268,8 +268,12 @@ class Lines:
 
     def csv(self, file):
         for param in self.params:
-            file.write(str(param[-1]))
-            file.write(",")
+            if len(param) > 1:
+                file.write(str(param[-1]))
+                file.write(",")
+            else:
+                file.write(str(0))
+                file.write(',')
 
     def info(self):
         for param in self.params:
