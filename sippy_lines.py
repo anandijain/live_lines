@@ -142,7 +142,7 @@ class Game:
         self.delta = None
 
     def write_game(self, file):
-        if len(self.lines.last_mod_lines) > 1:
+        if len(self.lines.last_mod_lines) > 0:
             self.delta = self.lines.last_mod_lines[-1] - self.start_time
         else:
             self.delta = '0'
@@ -208,7 +208,7 @@ class Lines:
         self.json = json
         self.jparams()
 
-        if len(self.params[0]) > 1:
+        if len(self.params[0]) > 0:
             if self.jps[0] == self.params[0][-1]:
                 self.updated = 0
                 return
@@ -217,7 +217,7 @@ class Lines:
         for param in self.params:
             if self.jps[i] is None:
                 self.jps[i] = "0"
-            if len(param) > 1:
+            if len(param) > 0:
                 if param[-1] == self.jps[i]:
                     i += 1
                     continue
@@ -267,7 +267,7 @@ class Lines:
 
     def csv(self, file):
         for param in self.params:
-            if len(param) > 1:
+            if len(param) > 0:
                 file.write(str(param[-1]))
                 file.write(",")
             else:
@@ -282,13 +282,6 @@ class Lines:
         for elt in [self.last_mod_lines, self.a_odds_ml, self.h_odds_ml]:
             print(str(elt), end='|')
 
-
-class JScore:
-    def __init__(self):
-        self.j_lastmod
-        self.j_quarters
-        self.j_secs
-        self.a_p
 
 class Score:
     def __init__(self, game_id):
@@ -341,7 +334,7 @@ class Score:
 
     def metadata(self):
         last_updated = self.data['lastUpdated']
-        if len(self.last_mod_score) > 1:
+        if len(self.last_mod_score) > 0:
             if self.last_mod_score[-1] == last_updated:
                 self.new = 0
                 return
@@ -349,7 +342,7 @@ class Score:
         self.jparams()
         i = 0
         for jp in self.jps:
-            if len(self.params[i]) > 1:
+            if len(self.params[i]) > 0:
                 if self.params[i][-1] == self.jps[i]:
                     i += 1
                     continue
@@ -378,7 +371,7 @@ class Score:
 
     def csv(self, file):
         for param in self.params:
-            if len(param) > 1:
+            if len(param) > 0:
                 if param is None:
                     param = ''
                 file.write(str(param[-1]) + ',')
