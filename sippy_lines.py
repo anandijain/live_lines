@@ -51,7 +51,6 @@ class Sippy:
             self.file.flush()
 
         for game in self.games:
-            if len(game.) > 1:
                 if game.lines.updated == 1 or game.scores.new == 1:
                     game.write_game(self.file)
                     game.lines.updated = 0
@@ -146,7 +145,7 @@ class Game:
         if len(self.lines.last_mod_lines) > 1:
             self.delta = self.lines.last_mod_lines[-1] - self.start_time
         else:
-            self.delta = '0s'
+            self.delta = '0'
         file.write(self.sport + ",")
         file.write(self.game_id + ",")
         file.write(self.a_team + ",")
@@ -284,46 +283,79 @@ class Lines:
             print(str(elt), end='|')
 
 
+class JScore:
+    def __init__(self):
+        self.j_lastmod
+        self.j_quarters
+        self.j_secs
+        self.a_p
+
 class Score:
     def __init__(self, game_id):
         self.new = 1
         self.game_id = game_id
-        [self.last_mod_score, self.quarter, self.secs, self.a_pts, self.h_pts,
-            self.status, self.dir_isdown, self.num_quarters, self.a_win, self.h_win] = ([] for i in range(10))
+        self.num_quarters = 0
+        self.dir_isdown = 0
+        self.jps = []
         self.data = None
+        self.clock = None
+        self.json()
+        self.jparams()
+
+        [self.last_mod_score, self.quarter, self.secs, self.a_pts, self.h_pts,
+            self.status, self.a_win, self.h_win] = ([] for i in range(8))
+
         self.params = [self.last_mod_score, self.quarter, self.secs, self.a_pts,
                        self.h_pts, self.status, self.a_win, self.h_win]
-
-    def json(self):
-        self.data = req(scores_url + self.game_id)
 
     def update(self):
         self.new = 0
         self.json()
         if self.data is None:
             return
-        clock = self.data.get('clock')
-        if clock is None:
-            return    
-        self.metadata(clock)
+        self.clock = self.data.get('clock')
+        if self.clock is None:
+            return
+        self.metadata()
         self.get_score()
         self.win_check()
 
-    def metadata(self, clock):
+    def json(self):
+        self.data = req(scores_url + self.game_id)
+
+    def jparams(self):
+        self.clock = self.data.get('clock')
+        if self.clock is None:
+            return
+        stat = 0
+        if self.data['gameStatus'] == "IN_PROGRESS":
+            stat = 1
+
+        score = self.data.get('latestScore')
+
+        self.jps = [self.data['lastUpdated'], self.clock.get('periodNumber'), self.clock.get('relativeGameTimeInSecs'),
+                    score.get('visitor'), score.get('home'), stat]
+
+        self.num_quarters = self.clock.get('numberOfPeriods')
+        self.dir_isdown = self.clock.get('direction')
+
+    def metadata(self):
         last_updated = self.data['lastUpdated']
         if len(self.last_mod_score) > 1:
             if self.last_mod_score[-1] == last_updated:
                 self.new = 0
                 return
-        self.new = 1
-        self.quarter.append(clock.get('periodNumber'))
-        self.num_quarters.append(clock.get('numberOfPeriods'))
-        self.secs.append(clock.get('relativeGameTimeInSecs'))
-        self.last_mod_score.append(self.data['lastUpdated'])
-        if self.data['gameStatus'] == "IN_PROGRESS":
-            self.status.append(1)
-        else:
-            self.status.append(0)
+
+        self.jparams()
+        i = 0
+        for jp in self.jps:
+            if len(self.params[i]) > 1:
+                if self.params[i][-1] == self.jps[i]:
+                    i += 1
+                    continue
+            self.params[i].append(jp)
+            self.new = 1
+            i += 1
 
     def get_score(self):
         if self.new == 1:
@@ -332,8 +364,9 @@ class Score:
             self.h_pts.append(score.get('home'))
 
     def win_check(self):
-        if self.quarter[-1] == 4 and self.secs[-1] == 0:  # this only works w games with 4 periods
-            print('endgame')
+        if self.num_quarters == 0:
+            self.num_quarters = 4
+        if self.quarter[-1] == self.num_quarters and self.secs[-1] == 0:
             if self.a_pts[-1] > self.h_pts[-1]:
                 self.a_win.append(1)
                 self.h_win.append(0)
