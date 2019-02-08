@@ -79,7 +79,7 @@ class Sippy:
             if exists == 0:
                 self.new_game(event, access_time)
 
-    def update_games_list(self):
+    def update_games_list(self):  # update to if win then remove.
         in_json = 0
         for game in self.games:
             game_id = game.game_id
@@ -142,10 +142,7 @@ class Game:
         self.delta = None
 
     def write_game(self, file):
-        if len(self.lines.last_mod_lines) > 0:
-            self.delta = self.lines.last_mod_lines[-1] - self.start_time
-        else:
-            self.delta = '0'
+        self.delta()
         file.write(self.sport + ",")
         file.write(self.game_id + ",")
         file.write(self.a_team + ",")
@@ -183,6 +180,12 @@ class Game:
     def odds(self):
         print(self.a_team + " " + str(self.lines.odds()))
         print(self.h_team + " " + str(self.lines.odds()))
+
+    def delta(self):
+        if len(self.lines.last_mod_lines) > 0:
+            self.delta = (self.lines.last_mod_lines[-1] - self.start_time * 1000) / 1000
+        else:
+            self.delta = '0'
 
 
 class Lines:
@@ -364,6 +367,7 @@ class Score:
                 self.a_win.append(1)
                 self.h_win.append(0)
                 print("Away team wins!")
+
             elif self.h_pts[-1] > self.a_pts[-1]:
                 self.a_win.append(0)
                 self.h_win.append(1)
