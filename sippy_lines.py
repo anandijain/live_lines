@@ -48,11 +48,14 @@ class Sippy:
             self.file.flush()
 
         for game in self.games:
-                if game.lines.updated == 1 or game.scores.new == 1:
+                if game.lines.updated == 1 or game.score.new == 1:
                     game.write_game(self.file)
                     game.lines.updated = 0
-                    if game.score.a_win[-1] != 0 or game.score.h_win[-1] != 0:
-                        self.games.remove(game)
+                    try:
+                        if game.score.a_win[-1] != 0 or game.score.h_win[-1] != 0:
+                            self.games.remove(game)
+                    except IndexError:
+                        pass
 
     def cur_games(self, access_time):
         for event in self.events:
@@ -60,7 +63,7 @@ class Sippy:
             for game in self.games:
                 if event['id'] == game.game_id:
                     game.lines.update(event)
-                    game.scores.update()
+                    game.score.update()
                     exists = 1
                     break
             if exists == 0:
@@ -96,6 +99,14 @@ class Sippy:
         self.file.write("h_odds_tot,a_deci_tot,h_deci_tot,a_hcap_tot,h_hcap_tot,")
         self.file.write("game_start_time\n")
 
+    def info(self, verbose):  # 1 for verbose, else for abridged
+        print(str(len(self.games)))
+        for game in self.games:
+            if verbose == 1:
+                game.info()
+            else:
+                game.quick()
+
     def new_game(self, game, access_time):
         x = Game(game, access_time)
         self.games.insert(0, x)
@@ -121,18 +132,18 @@ class Game:
         self.h_team = self.h_team[1:]
         self.teams = [self.a_team, self.h_team]
         self.start_time = json_game['startTime']
-        self.scores = Score(self)
+        self.score = Score(self.game_id)
         self.lines = Lines(json_game)
         self.link = json_game['link']
         self.delta = None
 
     def write_game(self, file):
-        self.delta()
+        self.time_diff()
         file.write(self.sport + ",")
         file.write(self.game_id + ",")
         file.write(self.a_team + ",")
         file.write(self.h_team + ",")
-        self.scores.csv(file)
+        self.score.csv(file)
         file.write(str(self.delta) + ',')
         self.lines.csv(file)
         # file.write(self.link + ",")
@@ -145,7 +156,7 @@ class Game:
         print(self.a_team, end='|')
         print(self.h_team, end='|')
         print('\nScores info: ')
-        self.scores.info()
+        self.score.info()
         print('Game line info: ')
         print(str(self.delta), end='|')
         self.lines.info()
@@ -154,19 +165,19 @@ class Game:
     def quick(self):
         print(str(self.lines.last_mod_lines))
         print(self.a_team, end=': ')
-        print(str(self.scores.a_pts) + ' ' + str(self.lines.a_odds_ml))
+        print(str(self.score.a_pts) + ' ' + str(self.lines.a_odds_ml))
         print(self.h_team, end=': ')
-        print(str(self.scores.h_pts) + ' ' + str(self.lines.h_odds_ml))
+        print(str(self.score.h_pts) + ' ' + str(self.lines.h_odds_ml))
 
     def score(self):
-        print(self.a_team + " " + str(self.scores.a_pts))
-        print(self.h_team + " " + str(self.scores.h_pts))
+        print(self.a_team + " " + str(self.score.a_pts))
+        print(self.h_team + " " + str(self.score.h_pts))
 
     def odds(self):
         print(self.a_team + " " + str(self.lines.odds()))
         print(self.h_team + " " + str(self.lines.odds()))
 
-    def delta(self):
+    def time_diff(self):
         if len(self.lines.last_mod_lines) > 0:
             self.delta = (self.lines.last_mod_lines[-1] - self.start_time) / 1000
         else:
@@ -264,7 +275,10 @@ class Lines:
 
     def info(self):
         for param in self.params:
-            print(str(param[-1]), end='|')
+            try:
+                print(str(param[-1]), end='|')
+            except IndexError:
+                print('None', end='|')
 
     def odds(self):
         for elt in [self.last_mod_lines, self.a_odds_ml, self.h_odds_ml]:
@@ -272,9 +286,9 @@ class Lines:
 
 
 class Score:
-    def __init__(self, game):
+    def __init__(self, game_id):
         self.new = 1
-        self.game_id = game.game_id
+        self.game_id = game_id
         self.num_quarters = 0
         self.dir_isdown = 0
         self.jps = []
@@ -305,6 +319,8 @@ class Score:
         self.data = req(scores_url + self.game_id)
 
     def jparams(self):
+        if self.data is None:
+            return
         self.clock = self.data.get('clock')
         if self.clock is None:
             return
