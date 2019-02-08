@@ -52,7 +52,11 @@ class Sippy:
                     game.write_game(self.file)
                     game.lines.updated = 0
                     try:
-                        if game.score.a_win[-1] != 0 or game.score.h_win[-1] != 0:
+                        if game.score.a_win[-1] != 0:
+                            print(game.a_team + 'won!')
+                            self.games.remove(game)
+                        elif game.score.h_win[-1] != 0:
+                            print(game.h_team + 'won!')
                             self.games.remove(game)
                     except IndexError:
                         pass
