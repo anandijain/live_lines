@@ -44,13 +44,15 @@ class Sippy:
         self.counter += 1
 
         if self.counter % 20 == 1:
-            print(str(len(self.games)))
+            print("num games: " + str(len(self.games)))
+            print('num events: ' + str(len(self.events)))
             self.file.flush()
 
         for game in self.games:
                 if game.lines.updated == 1 or game.score.new == 1:
                     game.write_game(self.file)
                     game.lines.updated = 0
+                    game.score.new == 0
                     try:
                         if game.score.a_win[-1] != 0:
                             print(game.a_team + ' won!')
@@ -80,8 +82,11 @@ class Sippy:
             pages.append(req(link))
         for page in pages:
             try:
-                for league in page:
-                    events += league.get('events')
+                for section in page:
+                    league = section['path'][0]['description']
+                    events += section.get('events')
+                    for event in events:
+                        event['league'] = league
             except TypeError:
                 pass
         self.events = events
@@ -99,7 +104,7 @@ class Sippy:
                           "description/basketball?marketFilterId=def&preMatchOnly=true&eventsLimit=50&lang=en"]
 
     def write_header(self):
-        self.file.write("sport,game_id,a_team,h_team,")
+        self.file.write("sport,league,game_id,a_team,h_team,")
         self.file.write("last_mod_score,quarter,secs,a_pts,h_pts,status,a_win,h_win,last_mod_to_start,")
         self.file.write("last_mod_lines,num_markets,a_odds_ml,h_odds_ml,a_deci_ml,h_deci_ml,")
         self.file.write("a_odds_ps,h_odds_ps,a_deci_ps,h_deci_ps,a_hcap_ps,h_hcap_ps,a_odds_tot,")
@@ -128,32 +133,33 @@ class Sippy:
 
 
 class Game:
-    def __init__(self, json_game, access_time):
+    def __init__(self, event, access_time):
         self.init_time = access_time
-        self.sport = json_game['sport']
-        self.game_id = json_game['id']
-        self.desc = json_game['description']
+        self.sport = event['sport']
+        self.league = event.get('league')
+        self.game_id = event['id']
+        self.desc = event['description']
         self.a_team = self.desc.split('@')[0]
         self.a_team = self.a_team[:-1]
         self.h_team = self.desc.split('@')[1]
         self.h_team = self.h_team[1:]
         self.teams = [self.a_team, self.h_team]
-        self.start_time = json_game['startTime']
+        self.start_time = event['startTime']
         self.score = Score(self.game_id)
-        self.lines = Lines(json_game)
-        self.link = json_game['link']
+        self.lines = Lines(event)
+        self.link = event['link']
         self.delta = None
 
     def write_game(self, file):
         self.time_diff()
-        file.write(self.sport + ",")
-        file.write(self.game_id + ",")
-        file.write(self.a_team + ",")
-        file.write(self.h_team + ",")
+        file.write(self.sport + ',')
+        file.write(self.league + ',')
+        file.write(self.game_id + ',')
+        file.write(self.a_team + ',')
+        file.write(self.h_team + ',')
         self.score.csv(file)
         file.write(str(self.delta) + ',')
         self.lines.csv(file)
-        # file.write(self.link + ",")
         file.write(str(self.start_time) + "\n")
 
     def info(self):  # displays scores, lines
