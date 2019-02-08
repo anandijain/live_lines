@@ -53,10 +53,10 @@ class Sippy:
                     game.lines.updated = 0
                     try:
                         if game.score.a_win[-1] != 0:
-                            print(game.a_team + 'won!')
+                            print(game.a_team + ' won!')
                             self.games.remove(game)
                         elif game.score.h_win[-1] != 0:
-                            print(game.h_team + 'won!')
+                            print(game.h_team + ' won!')
                             self.games.remove(game)
                     except IndexError:
                         pass
@@ -79,8 +79,11 @@ class Sippy:
         for link in self.links:
             pages.append(req(link))
         for page in pages:
-            for league in page:
-                events += league.get('events')
+            try:
+                for league in page:
+                    events += league.get('events')
+            except TypeError:
+                pass
         self.events = events
 
     def set_league(self, is_nba):
