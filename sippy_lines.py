@@ -10,7 +10,6 @@ headers = {'User-Agent': 'Mozilla/5.0'}
 
 # TODO convert last_mod_score to epoch
 # TODO add restart/timeout
-# TODO independent score checker
 # TODO 'EVEN' fix
 # TODO fix scores class so that it stores a list of scores.
 # TODO write the league, so as to differentiate between college and NBA
@@ -45,9 +44,7 @@ class Sippy:
         self.counter += 1
 
         if self.counter % 20 == 1:
-            print("before" + str(len(self.games)))
-            self.update_games_list()
-            print("after" + str(len(self.games)))
+            print(str(len(self.games)))
             self.file.flush()
 
         for game in self.games:
@@ -171,7 +168,7 @@ class Game:
 
     def delta(self):
         if len(self.lines.last_mod_lines) > 0:
-            self.delta = (self.lines.last_mod_lines[-1] - self.start_time * 1000) / 1000
+            self.delta = (self.lines.last_mod_lines[-1] - self.start_time) / 1000
         else:
             self.delta = '0'
 
