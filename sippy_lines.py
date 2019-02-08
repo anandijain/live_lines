@@ -54,18 +54,8 @@ class Sippy:
                 if game.lines.updated == 1 or game.scores.new == 1:
                     game.write_game(self.file)
                     game.lines.updated = 0
-
-    def run(self):
-        while True:
-            self.step()
-
-    def write_header(self):
-        self.file.write("sport,game_id,a_team,h_team,")
-        self.file.write("last_mod_score,quarter,secs,a_pts,h_pts,status,a_win,h_win,last_mod_to_start,")
-        self.file.write("last_mod_lines,num_markets,a_odds_ml,h_odds_ml,a_deci_ml,h_deci_ml,")
-        self.file.write("a_odds_ps,h_odds_ps,a_deci_ps,h_deci_ps,a_hcap_ps,h_hcap_ps,a_odds_tot,")
-        self.file.write("h_odds_tot,a_deci_tot,h_deci_tot,a_hcap_tot,h_hcap_tot,")
-        self.file.write("game_start_time\n")
+                    if game.score.a_win[-1] != 0 or game.score.h_win[-1] != 0:
+                        self.games.remove(game)
 
     def cur_games(self, access_time):
         for event in self.events:
@@ -79,37 +69,15 @@ class Sippy:
             if exists == 0:
                 self.new_game(event, access_time)
 
-    def update_games_list(self):  # update to if win then remove.
-        in_json = 0
-        for game in self.games:
-            game_id = game.game_id
-            for event in self.events:
-                if game_id == event['id']:
-                    in_json = 1
-                    break
-            if in_json == 0:
-                self.games.remove(game)
-
-    def new_game(self, game, access_time):
-        x = Game(game, access_time)
-        self.games.insert(0, x)
-
-    def init_games(self, access_time):
-        for event in self.events:
-            self.new_game(event, access_time)
-
     def json_events(self):
         pages = []
-        games = []
+        events = []
         for link in self.links:
             pages.append(req(link))
         for page in pages:
-            try:
-                for league in page:
-                    games += league['events']
-            except TypeError:
-                pass
-        self.events = games
+            for league in page:
+                events += league.get('events')
+        self.events = events
 
     def set_league(self, is_nba):
         if is_nba == 1:
@@ -122,6 +90,26 @@ class Sippy:
                           "description/basketball?marketFilterId=def&liveOnly=true&eventsLimit=8&lang=en",
                           "https://www.bovada.lv/services/sports/event/v2/events/A/" 
                           "description/basketball?marketFilterId=def&preMatchOnly=true&eventsLimit=50&lang=en"]
+
+    def write_header(self):
+        self.file.write("sport,game_id,a_team,h_team,")
+        self.file.write("last_mod_score,quarter,secs,a_pts,h_pts,status,a_win,h_win,last_mod_to_start,")
+        self.file.write("last_mod_lines,num_markets,a_odds_ml,h_odds_ml,a_deci_ml,h_deci_ml,")
+        self.file.write("a_odds_ps,h_odds_ps,a_deci_ps,h_deci_ps,a_hcap_ps,h_hcap_ps,a_odds_tot,")
+        self.file.write("h_odds_tot,a_deci_tot,h_deci_tot,a_hcap_tot,h_hcap_tot,")
+        self.file.write("game_start_time\n")
+
+    def new_game(self, game, access_time):
+        x = Game(game, access_time)
+        self.games.insert(0, x)
+
+    def init_games(self, access_time):
+        for event in self.events:
+            self.new_game(event, access_time)
+
+    def run(self):
+        while True:
+            self.step()
 
 
 class Game:
@@ -136,7 +124,7 @@ class Game:
         self.h_team = self.h_team[1:]
         self.teams = [self.a_team, self.h_team]
         self.start_time = json_game['startTime']
-        self.scores = Score(self.game_id)
+        self.scores = Score(self)
         self.lines = Lines(json_game)
         self.link = json_game['link']
         self.delta = None
@@ -287,9 +275,9 @@ class Lines:
 
 
 class Score:
-    def __init__(self, game_id):
+    def __init__(self, game):
         self.new = 1
-        self.game_id = game_id
+        self.game_id = game.game_id
         self.num_quarters = 0
         self.dir_isdown = 0
         self.jps = []
