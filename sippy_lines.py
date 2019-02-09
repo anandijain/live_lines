@@ -34,6 +34,7 @@ class Sippy:
         self.init_games(access_time)
         if header == 1:
             self.write_header()
+        self.file.flush()
 
     def step(self):  # eventually main wont have a wait_time because wait depnt on the queue and the Q space
         access_time = time.time()
@@ -84,12 +85,15 @@ class Sippy:
             try:
                 for section in page:
                     league = section['path'][0]['description']
-                    events += section.get('events')
-                    for event in events:
-                        event['league'] = league
+                    # print(league)
+                    tmp = section.get('events')
+                    for event in tmp:
+                        event.update({'league': league})
+                    events += tmp
             except TypeError:
                 pass
         self.events = events
+        print(str(len(self.events)))
 
     def set_league(self, is_nba):
         if is_nba == 1:
