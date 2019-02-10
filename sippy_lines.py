@@ -47,6 +47,7 @@ class Sippy:
         if self.counter % 20 == 1:
             print("num games: " + str(len(self.games)))
             print('num events: ' + str(len(self.events)))
+            self.update_games_list()
             self.file.flush()
 
         for game in self.games:
@@ -54,15 +55,25 @@ class Sippy:
                     game.write_game(self.file)
                     game.lines.updated = 0
                     game.score.new == 0
-                    try:
-                        if game.score.a_win[-1] != 0:
-                            print(game.a_team + ' won!')
-                            self.games.remove(game)
-                        elif game.score.h_win[-1] != 0:
-                            print(game.h_team + ' won!')
-                            self.games.remove(game)
-                    except IndexError:
-                        pass
+                try:
+                    if game.score.a_win[-1] != 0:
+                        print(game.a_team + ' won!')
+                        game.quick()
+                        # print("num games: " + str(len(self.games)))
+                        # print('num events: ' + str(len(self.events)))
+                        # self.games.remove(game)
+                        # print("num games: " + str(len(self.games)))
+                        # print('num events: ' + str(len(self.events)))
+                    elif game.score.h_win[-1] != 0:
+                        print(game.h_team + ' won!')
+                        game.quick()
+                        # print("num games: " + str(len(self.games)))
+                        # print('num events: ' + str(len(self.events)))
+                        # self.games.remove(game)
+                        # print("num games: " + str(len(self.games)))
+                        # print('num events: ' + str(len(self.events)))
+                except IndexError:
+                    pass
 
     def cur_games(self, access_time):
         for event in self.events:
@@ -93,7 +104,18 @@ class Sippy:
             except TypeError:
                 pass
         self.events = events
-        print(str(len(self.events)))
+        print("num games: " + str(len(self.games)))
+        print('num events: ' + str(len(self.events)))
+
+    def update_games_list(self):
+        for game in self.games:
+            in_json = 0
+            for event in self.events:
+                if game.game_id == event['id']:
+                    in_json = 1
+                    break
+            if in_json == 0:
+                self.games.remove(game)
 
     def set_league(self, is_nba):
         if is_nba == 1:
@@ -123,8 +145,9 @@ class Sippy:
             else:
                 game.quick()
 
-    def new_game(self, game, access_time):
-        x = Game(game, access_time)
+    def new_game(self, event, access_time):
+        x = Game(event, access_time)
+        x.quick()
         self.games.insert(0, x)
 
     def init_games(self, access_time):
@@ -232,7 +255,7 @@ class Lines:
         i = 0
         for param in self.params:
             if self.jps[i] is None:
-                self.jps[i] = "0"
+                self.jps[i] = 0
             if len(param) > 0:
                 if param[-1] == self.jps[i]:
                     i += 1
@@ -329,7 +352,7 @@ class Score:
         if self.clock is None:
             return
         self.metadata()
-        self.get_score()
+        # self.get_score()
         self.win_check()
 
     def json(self):
@@ -371,11 +394,11 @@ class Score:
             self.new = 1
             i += 1
 
-    def get_score(self):
-        if self.new == 1:
-            score = self.data.get('latestScore')
-            self.a_pts.append(score.get('visitor'))
-            self.h_pts.append(score.get('home'))
+    # def get_score(self):
+    #     if self.new == 1:
+    #         score = self.data.get('latestScore')
+    #         self.a_pts.append(score.get('visitor'))
+    #         self.h_pts.append(score.get('home'))
 
     def win_check(self):
         if self.num_quarters == 0:
