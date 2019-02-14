@@ -59,19 +59,9 @@ class Sippy:
                     if game.score.a_win[-1] != 0:
                         print(game.a_team + ' won!')
                         game.quick()
-                        # print("num games: " + str(len(self.games)))
-                        # print('num events: ' + str(len(self.events)))
-                        # self.games.remove(game)
-                        # print("num games: " + str(len(self.games)))
-                        # print('num events: ' + str(len(self.events)))
                     elif game.score.h_win[-1] != 0:
                         print(game.h_team + ' won!')
                         game.quick()
-                        # print("num games: " + str(len(self.games)))
-                        # print('num events: ' + str(len(self.events)))
-                        # self.games.remove(game)
-                        # print("num games: " + str(len(self.games)))
-                        # print('num events: ' + str(len(self.events)))
                 except IndexError:
                     pass
 
@@ -401,8 +391,8 @@ class Score:
     #         self.h_pts.append(score.get('home'))
 
     def win_check(self):
-        if self.num_quarters == 0:
-            self.num_quarters = 4
+        # if self.num_quarters == 0:
+        #     self.num_quarters = 4
         if self.quarter[-1] == self.num_quarters and self.secs[-1] == 0:
             if self.a_pts[-1] > self.h_pts[-1]:
                 self.a_win.append(1)
@@ -456,7 +446,12 @@ def req(url):
         print('connectionerror')
         time.sleep(2)
         return
-    return r.json()
+    try:
+        return r.json()
+    except ValueError:
+        time.sleep(2)
+        return
+
 
 
 def open_file(file_name):
