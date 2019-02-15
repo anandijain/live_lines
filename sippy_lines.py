@@ -70,6 +70,8 @@ class Sippy:
             exists = 0
             for game in self.games:
                 if event['id'] == game.game_id:
+                    if game.score.ended == 1:
+                        continue
                     game.lines.update(event)
                     game.score.update()
                     exists = 1
@@ -326,6 +328,7 @@ class Score:
         self.clock = None
         self.json()
         self.jparams()
+        self.ended = 0
 
         [self.last_mod_score, self.quarter, self.secs, self.a_pts, self.h_pts,
             self.status, self.a_win, self.h_win] = ([] for i in range(8))
@@ -397,12 +400,14 @@ class Score:
             if self.a_pts[-1] > self.h_pts[-1]:
                 self.a_win.append(1)
                 self.h_win.append(0)
-                print("Away team wins!")
+                self.ended = 1
+                # print("Away team wins!")
 
             elif self.h_pts[-1] > self.a_pts[-1]:
                 self.a_win.append(0)
                 self.h_win.append(1)
-                print("Home team wins!")
+                self.ended = 1
+                # print("Home team wins!")
 
     def csv(self, file):
         for param in self.params:

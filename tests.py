@@ -4,6 +4,8 @@ import sippy_lines as sl
 class Test:
     def __init__(self, file_name, nba, header, run):
         self.fn = file_name
+        self.league = nba
+        self.header = header
         self.sip = sl.Sippy(self.fn, header, nba)
         self.sip.step()
         self.game = self.sip.games[0]
