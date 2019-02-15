@@ -36,7 +36,7 @@ class Sippy:
             self.write_header()
         self.file.flush()
 
-    def step(self):  # eventually main wont have a wait_time because wait depnt on the queue and the Q space
+    def step(self):
         access_time = time.time()
         self.json_events()
         self.cur_games(access_time)
@@ -55,15 +55,6 @@ class Sippy:
                     game.write_game(self.file)
                     game.lines.updated = 0
                     game.score.new == 0
-                try:
-                    if game.score.a_win[-1] != 0:
-                        print(game.a_team + ' won!')
-                        game.quick()
-                    elif game.score.h_win[-1] != 0:
-                        print(game.h_team + ' won!')
-                        game.quick()
-                except IndexError:
-                    pass
 
     def cur_games(self, access_time):
         for event in self.events:
@@ -88,7 +79,6 @@ class Sippy:
             try:
                 for section in page:
                     league = section['path'][0]['description']
-                    # print(league)
                     tmp = section.get('events')
                     for event in tmp:
                         event.update({'league': league})
@@ -96,8 +86,6 @@ class Sippy:
             except TypeError:
                 pass
         self.events = events
-        print("num games: " + str(len(self.games)))
-        print('num events: ' + str(len(self.events)))
 
     def update_games_list(self):
         for game in self.games:
@@ -345,7 +333,6 @@ class Score:
         if self.clock is None:
             return
         self.metadata()
-        # self.get_score()
         self.win_check()
 
     def json(self):
@@ -363,8 +350,8 @@ class Score:
 
         score = self.data.get('latestScore')
 
-        self.jps = [self.data['lastUpdated'], self.clock.get('periodNumber'), self.clock.get('relativeGameTimeInSecs'),
-                    score.get('visitor'), score.get('home'), stat]
+        self.jps = [self.data['lastUpdated'], self.clock.get('periodNumber'),
+                    self.clock.get('relativeGameTimeInSecs'), score.get('visitor'), score.get('home'), stat]
 
         self.num_quarters = self.clock.get('numberOfPeriods')
         self.dir_isdown = self.clock.get('direction')
@@ -386,12 +373,6 @@ class Score:
             self.params[i].append(jp)
             self.new = 1
             i += 1
-
-    # def get_score(self):
-    #     if self.new == 1:
-    #         score = self.data.get('latestScore')
-    #         self.a_pts.append(score.get('visitor'))
-    #         self.h_pts.append(score.get('home'))
 
     def win_check(self):
         # if self.num_quarters == 0:
@@ -456,7 +437,6 @@ def req(url):
     except ValueError:
         time.sleep(2)
         return
-
 
 
 def open_file(file_name):
