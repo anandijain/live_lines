@@ -41,7 +41,7 @@ class Sippy:
         self.json_events()
         self.cur_games(access_time)
         time.sleep(1)
-        print(str(self.counter) + ": time: " + str(time.localtime()))
+        print(str(self.counter) + ": time: " + str(time.localtime()) + '\n')
         self.counter += 1
 
         if self.counter % 20 == 1:
@@ -112,8 +112,8 @@ class Sippy:
                           "description/basketball?marketFilterId=def&preMatchOnly=true&eventsLimit=50&lang=en"]
 
     def write_header(self):
-        self.file.write("sport,league,game_id,a_team,h_team,cur_time")
-        self.file.write("last_mod_score,quarter,secs,a_pts,h_pts,status,a_win,h_win,last_mod_to_start,")
+        self.file.write("sport,league,game_id,a_team,h_team,cur_time,")
+        self.file.write("lms_date,lms_time,quarter,secs,a_pts,h_pts,status,a_win,h_win,last_mod_to_start,")
         self.file.write("last_mod_lines,num_markets,a_odds_ml,h_odds_ml,a_deci_ml,h_deci_ml,")
         self.file.write("a_odds_ps,h_odds_ps,a_deci_ps,h_deci_ps,a_hcap_ps,h_hcap_ps,a_odds_tot,")
         self.file.write("h_odds_tot,a_deci_tot,h_deci_tot,a_hcap_tot,h_hcap_tot,")
@@ -166,7 +166,7 @@ class Game:
         file.write(self.game_id + ',')
         file.write(self.a_team + ',')
         file.write(self.h_team + ',')
-        file.write(time.time() + ',')
+        file.write(str(time.time()) + ',')
         self.score.csv(file)
         file.write(str(self.delta) + ',')
         self.lines.csv(file)
@@ -341,10 +341,10 @@ class Score:
         self.jparams()
         self.ended = 0
 
-        [self.last_mod_score, self.quarter, self.secs, self.a_pts, self.h_pts,
-            self.status, self.a_win, self.h_win] = ([] for i in range(8))
+        [self.lms_date, self.lms_time, self.quarter, self.secs, self.a_pts, self.h_pts,
+            self.status, self.a_win, self.h_win] = ([] for i in range(9))
 
-        self.params = [self.last_mod_score, self.quarter, self.secs, self.a_pts,
+        self.params = [self.lms_date, self.lms_time, self.quarter, self.secs, self.a_pts,
                        self.h_pts, self.status, self.a_win, self.h_win]
 
     def update(self):
@@ -358,34 +358,9 @@ class Score:
         self.metadata()
         self.win_check()
 
-    def json(self):
-        self.data = req(scores_url + self.game_id)
-
-    def jparams(self):
-        if self.data is None:
-            return
-        self.clock = self.data.get('clock')
-        if self.clock is None:
-            return
-        stat = 0
-        if self.data['gameStatus'] == "IN_PROGRESS":
-            stat = 1
-
-        score = self.data.get('latestScore')
-
-        self.jps = [self.data['lastUpdated'], self.clock.get('periodNumber'),
-                    self.clock.get('relativeGameTimeInSecs'), score.get('visitor'), score.get('home'), stat]
-
-        self.num_quarters = self.clock.get('numberOfPeriods')
-        self.dir_isdown = self.clock.get('direction')
-
     def metadata(self):
-        last_updated = self.data['lastUpdated']
-        if len(self.last_mod_score) > 0:
-            if self.last_mod_score[-1] == last_updated:
-                self.new = 0
-                return
-
+        if self.same() == 1:
+            return
         self.jparams()
         i = 0
         for jp in self.jps:
@@ -397,19 +372,48 @@ class Score:
             self.new = 1
             i += 1
 
+    def jparams(self):
+        if self.data is None:
+            return
+        self.clock = self.data.get('clock')
+        if self.clock is None:
+            return
+        status = 0
+        if self.data['gameStatus'] == "IN_PROGRESS":
+            status = 1
+
+        score = self.data.get('latestScore')
+
+        dt = self.date_split()
+
+        self.jps = [dt[0], dt[1], self.clock.get('periodNumber'),
+                    self.clock.get('relativeGameTimeInSecs'), score.get('visitor'), score.get('home'), status]
+
+        self.num_quarters = self.clock.get('numberOfPeriods')
+        self.dir_isdown = self.clock.get('direction')
+
     def win_check(self):
         if self.quarter[-1] == self.num_quarters and self.secs[-1] == 0:
             if self.a_pts[-1] > self.h_pts[-1]:
                 self.a_win.append(1)
                 self.h_win.append(0)
                 self.ended = 1
-                # print("Away team wins!")
 
             elif self.h_pts[-1] > self.a_pts[-1]:
                 self.a_win.append(0)
                 self.h_win.append(1)
                 self.ended = 1
-                # print("Home team wins!")
+
+    def date_split(self):
+        dt = self.data['lastUpdated'].split('T')
+        return dt
+
+    def same(self):
+        dt = self.date_split()
+        if len(self.lms_date) > 0 and len(self.lms_time) > 0:
+            if self.lms_date[-1] == dt[0] and self.lms_time[-1] == dt[1]:
+                self.new = 0
+                return 1
 
     def csv(self, file):
         for param in self.params:
@@ -426,6 +430,9 @@ class Score:
                 param = 0
             print(str(param), end='|')
         print('\n')
+
+    def json(self):
+        self.data = req(scores_url + self.game_id)
 
 
 class Market:
