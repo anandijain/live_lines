@@ -212,7 +212,7 @@ class Lines:
         self.updated = 0
         self.json = json
         self.jps = []
-
+        self.mkts = []
         [self.query_times, self.last_mod_lines, self.num_markets, self.a_odds_ml, self.h_odds_ml, self.a_deci_ml,
          self.h_deci_ml, self.a_odds_ps, self.h_odds_ps, self.a_deci_ps, self.h_deci_ps, self.a_hcap_ps,
          self.h_hcap_ps, self.a_odds_tot, self.h_odds_tot, self.a_deci_tot, self.h_deci_tot, self.a_hcap_tot,
@@ -251,13 +251,13 @@ class Lines:
         j_markets = self.json['displayGroups'][0]['markets']
         data = {"american": 0, "decimal": 0, "handicap": 0}
         data2 = {"american": 0, "decimal": 0, "handicap": 0}
-        mkts = []
+        self.mkts = []
         ps = Market(data, data2)
-        mkts.append(ps)
+        self.mkts.append(ps)
         ml = Market(data, data2)
-        mkts.append(ml)
+        self.mkts.append(ml)
         tot = Market(data, data2)
-        mkts.append(tot)
+        self.mkts.append(tot)
 
         for market in j_markets:
             outcomes = market['outcomes']
@@ -281,12 +281,31 @@ class Lines:
             elif desc == 'Total':
                 tot.update(away_price, home_price)
 
+        self.even_handler()
         last_mod = self.json['lastModified'] / 1000.
-        self.jps = [last_mod, self.json['numMarkets'], mkts[1].a['american'], mkts[1].h['american'],
-                    mkts[1].a['decimal'], mkts[1].h['decimal'], mkts[0].a['american'], mkts[0].h['american'],
-                    mkts[0].a['decimal'], mkts[0].h['decimal'], mkts[0].a['handicap'], mkts[0].h['handicap'],
-                    mkts[2].a['american'], mkts[2].h['american'], mkts[2].a['decimal'], mkts[2].h['decimal'],
-                    mkts[2].a['handicap'], mkts[2].h['handicap']]
+        self.jps = [last_mod, self.json['numMarkets'], self.mkts[1].a['american'], self.mkts[1].h['american'],
+                    self.mkts[1].a['decimal'], self.mkts[1].h['decimal'], self.mkts[0].a['american'], self.mkts[0].h['american'],
+                    self.mkts[0].a['decimal'], self.mkts[0].h['decimal'], self.mkts[0].a['handicap'], self.mkts[0].h['handicap'],
+                    self.mkts[2].a['american'], self.mkts[2].h['american'], self.mkts[2].a['decimal'], self.mkts[2].h['decimal'],
+                    self.mkts[2].a['handicap'], self.mkts[2].h['handicap']]
+
+    def even_handler(self):
+        for mkt in self.mkts:
+            if mkt.a['american'] == 'EVEN':
+                if int(mkt.h['american']) > 0:
+                    mkt.a['american'] = -100
+                elif int(mkt.h['american']) < 0:
+                    mkt.a['american'] = 100
+                else:
+                    mkt.a['american'] = 0
+
+            if mkt.h['american'] == 'EVEN':
+                if int(mkt.a['american']) > 0:
+                    mkt.h['american'] = -100
+                elif int(mkt.a['american']) < 0:
+                    mkt.h['american'] = 100
+                else:
+                    mkt.h['american'] = 0
 
     def csv(self, file):
         for param in self.params:
