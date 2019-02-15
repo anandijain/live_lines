@@ -41,7 +41,7 @@ class Sippy:
         self.json_events()
         self.cur_games(access_time)
         time.sleep(1)
-        print("self.counter: " + str(self.counter) + " time: " + str(time.localtime()))
+        print(str(self.counter) + ": time: " + str(time.localtime()))
         self.counter += 1
 
         if self.counter % 20 == 1:
@@ -51,10 +51,12 @@ class Sippy:
             self.file.flush()
 
         for game in self.games:
-                if game.lines.updated == 1 or game.score.new == 1:
-                    game.write_game(self.file)
-                    game.lines.updated = 0
-                    game.score.new == 0
+            if game.score.ended == 1:
+                continue
+            if game.lines.updated == 1 or game.score.new == 1:
+                game.write_game(self.file)
+                game.lines.updated = 0
+                game.score.new == 0
 
     def cur_games(self, access_time):
         for event in self.events:
@@ -110,7 +112,7 @@ class Sippy:
                           "description/basketball?marketFilterId=def&preMatchOnly=true&eventsLimit=50&lang=en"]
 
     def write_header(self):
-        self.file.write("sport,league,game_id,a_team,h_team,")
+        self.file.write("sport,league,game_id,a_team,h_team,cur_time")
         self.file.write("last_mod_score,quarter,secs,a_pts,h_pts,status,a_win,h_win,last_mod_to_start,")
         self.file.write("last_mod_lines,num_markets,a_odds_ml,h_odds_ml,a_deci_ml,h_deci_ml,")
         self.file.write("a_odds_ps,h_odds_ps,a_deci_ps,h_deci_ps,a_hcap_ps,h_hcap_ps,a_odds_tot,")
@@ -127,7 +129,7 @@ class Sippy:
 
     def new_game(self, event, access_time):
         x = Game(event, access_time)
-        x.quick()
+        # x.quick()
         self.games.insert(0, x)
 
     def init_games(self, access_time):
@@ -151,7 +153,7 @@ class Game:
         self.h_team = self.desc.split('@')[1]
         self.h_team = self.h_team[1:]
         self.teams = [self.a_team, self.h_team]
-        self.start_time = event['startTime']
+        self.start_time = event['startTime'] / 1000.
         self.score = Score(self.game_id)
         self.lines = Lines(event)
         self.link = event['link']
@@ -164,6 +166,7 @@ class Game:
         file.write(self.game_id + ',')
         file.write(self.a_team + ',')
         file.write(self.h_team + ',')
+        file.write(time.time() + ',')
         self.score.csv(file)
         file.write(str(self.delta) + ',')
         self.lines.csv(file)
@@ -199,7 +202,7 @@ class Game:
 
     def time_diff(self):
         if len(self.lines.last_mod_lines) > 0:
-            self.delta = (self.lines.last_mod_lines[-1] - self.start_time) / 1000
+            self.delta = (self.lines.last_mod_lines[-1] - self.start_time)
         else:
             self.delta = '0'
 
@@ -278,7 +281,8 @@ class Lines:
             elif desc == 'Total':
                 tot.update(away_price, home_price)
 
-        self.jps = [self.json['lastModified'], self.json['numMarkets'], mkts[1].a['american'], mkts[1].h['american'],
+        last_mod = self.json['lastModified'] / 1000.
+        self.jps = [last_mod, self.json['numMarkets'], mkts[1].a['american'], mkts[1].h['american'],
                     mkts[1].a['decimal'], mkts[1].h['decimal'], mkts[0].a['american'], mkts[0].h['american'],
                     mkts[0].a['decimal'], mkts[0].h['decimal'], mkts[0].a['handicap'], mkts[0].h['handicap'],
                     mkts[2].a['american'], mkts[2].h['american'], mkts[2].a['decimal'], mkts[2].h['decimal'],
@@ -375,8 +379,6 @@ class Score:
             i += 1
 
     def win_check(self):
-        # if self.num_quarters == 0:
-        #     self.num_quarters = 4
         if self.quarter[-1] == self.num_quarters and self.secs[-1] == 0:
             if self.a_pts[-1] > self.h_pts[-1]:
                 self.a_win.append(1)
