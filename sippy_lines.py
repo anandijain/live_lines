@@ -355,13 +355,13 @@ class Score:
         self.clock = self.data.get('clock')
         if self.clock is None:
             return
-        self.metadata()
+        self.jparams()
         self.win_check()
+        self.metadata()
 
     def metadata(self):
         if self.same() == 1:
             return
-        self.jparams()
         i = 0
         for jp in self.jps:
             if len(self.params[i]) > 0:
