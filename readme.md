@@ -4,8 +4,7 @@ basketball, tennis, volleyball, hockey, and esports
 live_lines.py is deprecated.
 sippy_lines.py is current.
 
-The fastest way to run this is to run the following commands:
-First: 
+Open up a terminal/shell and navigate to where this project resides and execute the following for quick-start:
     
     python3
     import tests as t
