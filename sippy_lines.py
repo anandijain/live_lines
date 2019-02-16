@@ -99,12 +99,17 @@ class Sippy:
             if in_json == 0:
                 self.games.remove(game)
 
-    def set_league(self, is_nba):
-        if is_nba == 1:
+    def set_league(self, league):
+        if league == 1:
             self.links = ["https://www.bovada.lv/services/sports/event/v2/events/A/" 
                           "description/basketball/nba?marketFilterId=def&liveOnly=true&lang=en",
                           "https://www.bovada.lv/services/sports/event/v2/events/" 
                           "A/description/basketball/nba?marketFilterId=def&preMatchOnly=true&lang=en"]
+        elif league == 2:
+            self.links = ['https://www.bovada.lv/services/sports/event/v2/events/A/'
+                          'description/basketball/college-basketball?marketFilterId=def&liveOnly=true&lang=en',
+                          'https://www.bovada.lv/services/sports/event/v2/events/A/'
+                          'description/basketball/college-basketball?marketFilterId=def&preMatchOnly=true&lang=en']
         else:
             self.links = ["https://www.bovada.lv/services/sports/event/v2/events/A/" 
                           "description/basketball?marketFilterId=def&liveOnly=true&eventsLimit=8&lang=en",
