@@ -132,6 +132,11 @@ class Sippy:
                           'description/football?marketFilterId=def&liveOnly=true&eventsLimit=8&lang=en',
                           'https://www.bovada.lv/services/sports/event/v2/events/A/'
                           'description/football?marketFilterId=def&preMatchOnly=true&eventsLimit=50&lang=en']
+        elif league == 7:  # Volleyball
+            self.links = ['https://www.bovada.lv/services/sports/event/v2/events/A/'
+                          'description/volleyball?marketFilterId=def&liveOnly=true&eventsLimit=8&lang=en',
+                          'https://www.bovada.lv/services/sports/event/v2/events/A/'
+                          'description/volleyball?marketFilterId=def&preMatchOnly=true&eventsLimit=50&lang=en']
         else:               # All BASK
             self.links = ["https://www.bovada.lv/services/sports/event/v2/events/A/" 
                           "description/basketball?marketFilterId=def&liveOnly=true&eventsLimit=8&lang=en",
@@ -169,15 +174,15 @@ class Sippy:
 
 
 class Game:
-    def __init__(self, event, access_time, league):
+    def __init__(self, event, access_time, gtype):
         self.init_time = access_time
         self.sport = event['sport']
-        self.league_num = league
+        self.gtype = gtype
         self.league = event.get('league')
         self.league_fix()
         self.game_id = event['id']
         self.desc = event['description']
-        if self.league_num == 4:
+        if self.gtype == 4 or self.gtype == 7:
             sep = 'vs'
         else:
             sep = '@'
