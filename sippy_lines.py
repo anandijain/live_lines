@@ -127,6 +127,11 @@ class Sippy:
                           'description/esports?marketFilterId=def&liveOnly=true&eventsLimit=8&lang=en',
                           'https://www.bovada.lv/services/sports/event/v2/events/A/'
                           'description/esports?marketFilterId=def&preMatchOnly=true&eventsLimit=50&lang=en']
+        elif league == 6:  # Football
+            self.links = ['https://www.bovada.lv/services/sports/event/v2/events/A/'
+                          'description/football?marketFilterId=def&liveOnly=true&eventsLimit=8&lang=en',
+                          'https://www.bovada.lv/services/sports/event/v2/events/A/'
+                          'description/football?marketFilterId=def&preMatchOnly=true&eventsLimit=50&lang=en']
         else:               # All BASK
             self.links = ["https://www.bovada.lv/services/sports/event/v2/events/A/" 
                           "description/basketball?marketFilterId=def&liveOnly=true&eventsLimit=8&lang=en",
@@ -169,6 +174,7 @@ class Game:
         self.sport = event['sport']
         self.league_num = league
         self.league = event.get('league')
+        self.league_fix()
         self.game_id = event['id']
         self.desc = event['description']
         if self.league_num == 4:
@@ -233,6 +239,10 @@ class Game:
             self.delta = (self.lines.last_mod_lines[-1] - self.start_time)
         else:
             self.delta = '0'
+
+    def league_fix(self):
+        if self.league is not None:
+            self.league = self.league.replace(',', '')
 
 
 class Lines:
