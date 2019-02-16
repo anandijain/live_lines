@@ -110,6 +110,11 @@ class Sippy:
                           'description/basketball/college-basketball?marketFilterId=def&liveOnly=true&lang=en',
                           'https://www.bovada.lv/services/sports/event/v2/events/A/'
                           'description/basketball/college-basketball?marketFilterId=def&preMatchOnly=true&lang=en']
+        elif league == 3:
+            self.links = ['https://www.bovada.lv/services/sports/event/v2/events/A/'
+                          'description/hockey?marketFilterId=def&liveOnly=true&eventsLimit=8&lang=en',
+                          'https://www.bovada.lv/services/sports/event/v2/events/A/'
+                          'description/hockey?marketFilterId=def&preMatchOnly=true&eventsLimit=50&lang=en']
         else:
             self.links = ["https://www.bovada.lv/services/sports/event/v2/events/A/" 
                           "description/basketball?marketFilterId=def&liveOnly=true&eventsLimit=8&lang=en",
@@ -351,6 +356,8 @@ class Score:
 
         self.params = [self.lms_date, self.lms_time, self.quarter, self.secs, self.a_pts,
                        self.h_pts, self.status, self.a_win, self.h_win]
+        self.a_win.append(0)
+        self.h_win.append(0)
 
     def update(self):
         self.new = 0
