@@ -17,8 +17,9 @@ The arguments that the Test function takes in are:
 * 2: if 1, write the column headers
 * 3: if 1, run the program after initialization
 
+sport codes:
 
-    sport codes:
+
     0 - All basketball
     1 - NBA
     2 - College Basketball
