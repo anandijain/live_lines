@@ -8,7 +8,9 @@ class Test:
         self.header = header
         self.sip = sl.Sippy(self.fn, header, nba)
         self.sip.step()
-        self.game = self.sip.games[0]
+        print('num_games: ' + str(len(self.sip.games)))
+        if len(self.sip.games) > 0:
+            self.game = self.sip.games[0]
         if run != 0:
             self.run()
         # self.game.info()

@@ -21,12 +21,13 @@ headers = {'User-Agent': 'Mozilla/5.0'}
 
 
 class Sippy:
-    def __init__(self, file_name, header, is_nba):
+    def __init__(self, file_name, header, league):
         print("~~~~sippywoke~~~~")
         self.games = []
         self.links = []
         self.events = []
-        self.set_league(is_nba)
+        self.league = league
+        self.set_league(self.league)
         self.json_events()
         self.counter = 0
         self.file = open_file(file_name)
@@ -100,22 +101,33 @@ class Sippy:
                 self.games.remove(game)
 
     def set_league(self, league):
-        if league == 1:
+        if league == 1:  # NBA
             self.links = ["https://www.bovada.lv/services/sports/event/v2/events/A/" 
                           "description/basketball/nba?marketFilterId=def&liveOnly=true&lang=en",
                           "https://www.bovada.lv/services/sports/event/v2/events/" 
                           "A/description/basketball/nba?marketFilterId=def&preMatchOnly=true&lang=en"]
-        elif league == 2:
+        elif league == 2:  # College Bask
             self.links = ['https://www.bovada.lv/services/sports/event/v2/events/A/'
                           'description/basketball/college-basketball?marketFilterId=def&liveOnly=true&lang=en',
                           'https://www.bovada.lv/services/sports/event/v2/events/A/'
-                          'description/basketball/college-basketball?marketFilterId=def&preMatchOnly=true&lang=en']
-        elif league == 3:
+                          'description/basketball/college-basketball?marketFilterId=def'
+                          '&preMatchOnly=true&eventsLimit=50&lang=en']
+        elif league == 3:  # Hockey
             self.links = ['https://www.bovada.lv/services/sports/event/v2/events/A/'
-                          'description/hockey?marketFilterId=def&liveOnly=true&eventsLimit=8&lang=en',
+                          'description/hockey?marketFilterId=def&liveOnly=true&lang=en',
                           'https://www.bovada.lv/services/sports/event/v2/events/A/'
                           'description/hockey?marketFilterId=def&preMatchOnly=true&eventsLimit=50&lang=en']
-        else:
+        elif league == 4:  # Tennis
+            self.links = ['https://www.bovada.lv/services/sports/event/v2/events/A/'
+                          'description/tennis?marketFilterId=def&liveOnly=true&eventsLimit=8&lang=en',
+                          'https://www.bovada.lv/services/sports/event/v2/events/A/'
+                          'description/tennis?marketFilterId=def&preMatchOnly=true&eventsLimit=50&lang=en']
+        elif league == 5:  # Esports
+            self.links = ['https://www.bovada.lv/services/sports/event/v2/events/A/'
+                          'description/esports?marketFilterId=def&liveOnly=true&eventsLimit=8&lang=en',
+                          'https://www.bovada.lv/services/sports/event/v2/events/A/'
+                          'description/esports?marketFilterId=def&preMatchOnly=true&eventsLimit=50&lang=en']
+        else:               # All BASK
             self.links = ["https://www.bovada.lv/services/sports/event/v2/events/A/" 
                           "description/basketball?marketFilterId=def&liveOnly=true&eventsLimit=8&lang=en",
                           "https://www.bovada.lv/services/sports/event/v2/events/A/" 
@@ -138,7 +150,7 @@ class Sippy:
                 game.quick()
 
     def new_game(self, event, access_time):
-        x = Game(event, access_time)
+        x = Game(event, access_time, self.league)
         # x.quick()
         self.games.insert(0, x)
 
@@ -152,15 +164,21 @@ class Sippy:
 
 
 class Game:
-    def __init__(self, event, access_time):
+    def __init__(self, event, access_time, league):
         self.init_time = access_time
         self.sport = event['sport']
+        self.league_num = league
         self.league = event.get('league')
         self.game_id = event['id']
         self.desc = event['description']
-        self.a_team = self.desc.split('@')[0]
+        if self.league_num == 4:
+            sep = 'vs'
+        else:
+            sep = '@'
+        self.a_team = self.desc.split(sep)[0]
         self.a_team = self.a_team[:-1]
-        self.h_team = self.desc.split('@')[1]
+        # print(str(self.a_team))
+        self.h_team = self.desc.split(sep)[1]
         self.h_team = self.h_team[1:]
         self.teams = [self.a_team, self.h_team]
         self.start_time = event['startTime'] / 1000.
@@ -356,8 +374,8 @@ class Score:
 
         self.params = [self.lms_date, self.lms_time, self.quarter, self.secs, self.a_pts,
                        self.h_pts, self.status, self.a_win, self.h_win]
-        self.a_win.append(0)
-        self.h_win.append(0)
+        # self.a_win.append(0)
+        # self.h_win.append(0)
 
     def update(self):
         self.new = 0
@@ -368,8 +386,8 @@ class Score:
         if self.clock is None:
             return
         self.jparams()
-        self.win_check()
         self.metadata()
+        self.win_check()
 
     def metadata(self):
         if self.same() == 1:
@@ -410,11 +428,13 @@ class Score:
                 self.a_win.append(1)
                 self.h_win.append(0)
                 self.ended = 1
+                print('a_team win')
 
             elif self.h_pts[-1] > self.a_pts[-1]:
                 self.a_win.append(0)
                 self.h_win.append(1)
                 self.ended = 1
+                print('h_team win')
 
     def date_split(self):
         dt = self.data['lastUpdated'].split('T')
