@@ -8,7 +8,7 @@ Open up a terminal/shell and navigate to where this project resides and execute 
     
     python3
     import tests as t
-    x = t.Test('0000', 1, 1, 1)
+    x = t.Test('0000', 1, 1, 1)  # these inputs explained below
     x.run()
 
 The arguments that the Test function takes in are:
