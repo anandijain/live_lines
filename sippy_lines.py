@@ -52,9 +52,9 @@ class Sippy:
             self.file.flush()
 
         for game in self.games:
-            if game.score.ended == 1:
-                continue
             if game.lines.updated == 1 or game.score.new == 1:
+                if game.score.ended == 1:
+                    continue
                 game.write_game(self.file)
                 game.lines.updated = 0
                 game.score.new == 0
@@ -188,7 +188,6 @@ class Game:
             sep = '@'
         self.a_team = self.desc.split(sep)[0]
         self.a_team = self.a_team[:-1]
-        # print(str(self.a_team))
         self.h_team = self.desc.split(sep)[1]
         self.h_team = self.h_team[1:]
         self.teams = [self.a_team, self.h_team]
@@ -418,11 +417,6 @@ class Score:
             i += 1
 
     def jparams(self):
-        if self.data is None:
-            return
-        self.clock = self.data.get('clock')
-        if self.clock is None:
-            return
         status = 0
         if self.data['gameStatus'] == "IN_PROGRESS":
             status = 1
@@ -443,12 +437,14 @@ class Score:
                 self.a_win.append(1)
                 self.h_win.append(0)
                 self.ended = 1
+                self.new = 1
                 print('a_team win')
 
             elif self.h_pts[-1] > self.a_pts[-1]:
                 self.a_win.append(0)
                 self.h_win.append(1)
                 self.ended = 1
+                self.new = 1
                 print('h_team win')
 
     def date_split(self):
