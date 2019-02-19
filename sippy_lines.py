@@ -52,12 +52,13 @@ class Sippy:
             self.file.flush()
 
         for game in self.games:
-            if game.lines.updated == 1 or game.score.new == 1:
-                if game.score.ended == 1:
-                    continue
-                game.write_game(self.file)
-                game.lines.updated = 0
-                game.score.new == 0
+            if game.score.ended == 0:
+                if game.lines.updated == 1 or game.score.new == 1:
+                    game.write_game(self.file)
+                    game.lines.updated = 0
+                    game.score.new == 0
+                if game.score.a_win == 1 or game.score.h_win == 1:
+                    game.score.ended = 1
 
     def cur_games(self, access_time):
         for event in self.events:
@@ -417,6 +418,11 @@ class Score:
             i += 1
 
     def jparams(self):
+        if self.data is None:
+            return
+        self.clock = self.data.get('clock')
+        if self.clock is None:
+            return
         status = 0
         if self.data['gameStatus'] == "IN_PROGRESS":
             status = 1
@@ -432,20 +438,17 @@ class Score:
         self.dir_isdown = self.clock.get('direction')
 
     def win_check(self):
-        if self.quarter[-1] == self.num_quarters and self.secs[-1] == 0:
-            if self.a_pts[-1] > self.h_pts[-1]:
-                self.a_win.append(1)
-                self.h_win.append(0)
-                self.ended = 1
-                self.new = 1
-                print('a_team win')
+        if self.ended == 0:
+            if self.quarter[-1] == self.num_quarters and self.secs[-1] == 0:
+                if self.a_pts[-1] > self.h_pts[-1]:
+                    self.a_win.append(1)
+                    self.h_win.append(0)
+                    print('a_team win')
 
-            elif self.h_pts[-1] > self.a_pts[-1]:
-                self.a_win.append(0)
-                self.h_win.append(1)
-                self.ended = 1
-                self.new = 1
-                print('h_team win')
+                elif self.h_pts[-1] > self.a_pts[-1]:
+                    self.a_win.append(0)
+                    self.h_win.append(1)
+                    print('h_team win')
 
     def date_split(self):
         dt = self.data['lastUpdated'].split('T')
