@@ -438,8 +438,9 @@ class Score:
         self.dir_isdown = self.clock.get('direction')
 
     def win_check(self):
+        win = self.quarter[-1] == self.num_quarters and self.secs[-1] == 0
         if self.ended == 0:
-            if self.quarter[-1] == self.num_quarters and self.secs[-1] == 0:
+            if win:
                 if self.a_pts[-1] > self.h_pts[-1]:
                     self.a_win.append(1)
                     self.h_win.append(0)
