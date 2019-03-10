@@ -21,7 +21,7 @@ headers = {'User-Agent': 'Mozilla/5.0'}
 
 
 class Sippy:
-    def __init__(self, file_name, header, league):
+    def __init__(self, file_name, header=0, league=1):
         print("~~~~sippywoke~~~~")
         self.games = []
         self.links = []
