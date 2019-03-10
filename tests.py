@@ -2,7 +2,7 @@ import sippy_lines as sl
 
 
 class Test:
-    def __init__(self, file_name, header, game_type, run):
+    def __init__(self, file_name, header=0, game_type=1, run=1):
         self.fn = file_name
         self.gt = game_type
         self.header = header
