@@ -2,6 +2,10 @@ import time
 import os.path
 import requests
 import argparse
+import helpers as h
+import matplotlib.pyplot as plt 
+import numpy as np
+
 
 save_path = 'data'
 root_url = 'https://www.bovada.lv'
@@ -21,11 +25,13 @@ headers = {'User-Agent': 'Mozilla/5.0'}
 
 
 class Sippy:
-    def __init__(self, file_name, header=0, league=1):
+    def __init__(self, file_name='data/nba2.csv', header=0, league=1):
         print("~~~~sippywoke~~~~")
         self.games = []
         self.links = []
         self.events = []
+        self.x_axis = []
+        self.y_axis = []
         self.league = league
         self.set_league(self.league)
         self.json_events()
@@ -52,13 +58,49 @@ class Sippy:
             self.file.flush()
 
         for game in self.games:
-            if game.score.ended == 0:
-                if game.lines.updated == 1 or game.score.new == 1:
-                    game.write_game(self.file)
-                    game.lines.updated = 0
-                    game.score.new == 0
+            if game.score.ended == 0:  # if game is not over
+                if game.lines.updated == 1 or game.score.new == 1:  # if lines updated or score updated
+                    game.write_game(self.file)  # write to csv
+                    game.lines.updated = 0  # reset lines to not be updated
+                    game.score.new == 0 
                 if game.score.a_win == 1 or game.score.h_win == 1:
                     game.score.ended = 1
+
+                print(type(game.game_id))
+                
+                if game.game_id == '4018316':
+                    odds = (int(game.lines.params[2][-1]),int(game.lines.params[3][-1]))
+                    awaysale_price = 100*h._eq(320) - h.awaygraph_hedge_amt(odds)
+                    points_sum = game.score.a_pts[0] + game.score.h_pts[0]
+                    points_sum = float(points_sum)
+                    print(type(game.score.h_pts)) 
+                    print(type(game.score.a_pts))
+                    print(len(game.score.h_pts))
+                    print(len(game.score.a_pts))
+                    print(game.score.h_pts)
+                    print(game.score.a_pts)
+                    print(points_sum)
+                    print(awaysale_price)
+
+                    if type(awaysale_price) == type(points_sum):
+                        #odds = (int(game.lines.params[2][-1]),int(game.lines.params[3][-1]))
+                        #homesale_price = 100*h._eq(-440) - h.homegraph_hedge_amt(odds)
+                        #awaysale_price = 100*h._eq(320) - h.awaygraph_hedge_amt(odds)
+                        #points_sum = game.score.a_pts + game.score.h_pts
+                        self.x_axis.append(points_sum)
+                        self.y_axis.append(awaysale_price)
+                        np_x_axis = np.array(self.x_axis)
+                        np_y_axis = np.array(self.y_axis)
+                        np_x_axis = np_x_axis.astype(float)
+                        np_y_axis = np_y_axis.astype(float)
+                        print(len(self.x_axis))
+                        print(len(self.y_axis))
+                        print(np_x_axis.size)
+                        print(np_y_axis.size)
+                        # print()
+                        # if len(self.x_axis) % 50 == 1:
+                        plt.scatter(np_x_axis, np_y_axis, alpha=0.5)
+                        plt.show()
 
     def cur_games(self, access_time):
         for event in self.events:
@@ -168,6 +210,13 @@ class Sippy:
     def init_games(self, access_time):
         for event in self.events:
             self.new_game(event, access_time)
+
+    def id_given_teams(self, a_team, h_team):  # input is two strings
+        for game in self.games:
+            if game.a_team == a_team and game.h_team == h_team:
+                return game.game_id
+            else:
+                return None                
 
     def run(self):
         while True:

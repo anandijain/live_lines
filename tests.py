@@ -1,5 +1,5 @@
 import sippy_lines as sl
-
+import matplotlib.pyplot as plt 
 
 class Test:
     def __init__(self, file_name, header=0, game_type=1, run=1):
