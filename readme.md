@@ -1,8 +1,4 @@
-live_lines is a tracker for bovada.
-basketball, tennis, volleyball, hockey, and esports
-
-live_lines.py is deprecated.
-sippy_lines.py is current.
+live_lines is a tracker for bovada, primarily basketball
 
 Open up a terminal/shell and navigate to where this project resides and execute the following for quick-start:
     
