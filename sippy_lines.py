@@ -71,7 +71,7 @@ class Sippy:
                 if game.game_id == '4018316':
                     odds = (int(game.lines.params[2][-1]),int(game.lines.params[3][-1]))
                     awaysale_price = 100*h._eq(320) - h.awaygraph_hedge_amt(odds)
-                    points_sum = game.score.a_pts[0] + game.score.h_pts[0]
+                    points_sum = int(game.score.a_pts[0]) + int(game.score.h_pts[0])
                     points_sum = float(points_sum)
                     print(type(game.score.h_pts)) 
                     print(type(game.score.a_pts))
