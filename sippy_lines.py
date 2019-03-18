@@ -66,42 +66,6 @@ class Sippy:
                 if game.score.a_win == 1 or game.score.h_win == 1:
                     game.score.ended = 1
 
-                print(type(game.game_id))
-                
-                if game.game_id == '4018316':
-                    odds = (int(game.lines.params[2][-1]),int(game.lines.params[3][-1]))
-                    awaysale_price = 100*h._eq(320) - h.awaygraph_hedge_amt(odds)
-                    points_sum = int(game.score.a_pts[0]) + int(game.score.h_pts[0])
-                    points_sum = float(points_sum)
-                    print(type(game.score.h_pts)) 
-                    print(type(game.score.a_pts))
-                    print(len(game.score.h_pts))
-                    print(len(game.score.a_pts))
-                    print(game.score.h_pts)
-                    print(game.score.a_pts)
-                    print(points_sum)
-                    print(awaysale_price)
-
-                    if type(awaysale_price) == type(points_sum):
-                        #odds = (int(game.lines.params[2][-1]),int(game.lines.params[3][-1]))
-                        #homesale_price = 100*h._eq(-440) - h.homegraph_hedge_amt(odds)
-                        #awaysale_price = 100*h._eq(320) - h.awaygraph_hedge_amt(odds)
-                        #points_sum = game.score.a_pts + game.score.h_pts
-                        self.x_axis.append(points_sum)
-                        self.y_axis.append(awaysale_price)
-                        np_x_axis = np.array(self.x_axis)
-                        np_y_axis = np.array(self.y_axis)
-                        np_x_axis = np_x_axis.astype(float)
-                        np_y_axis = np_y_axis.astype(float)
-                        print(len(self.x_axis))
-                        print(len(self.y_axis))
-                        print(np_x_axis.size)
-                        print(np_y_axis.size)
-                        # print()
-                        # if len(self.x_axis) % 50 == 1:
-                        plt.scatter(np_x_axis, np_y_axis, alpha=0.5)
-                        plt.show()
-
     def cur_games(self, access_time):
         for event in self.events:
             exists = 0
