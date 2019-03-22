@@ -1,5 +1,7 @@
 import sippy_lines as sl
 import matplotlib.pyplot as plt 
+import threading
+import time
 
 class Test:
     def __init__(self, file_name, header=0, game_type=1, run=1):
@@ -17,3 +19,16 @@ class Test:
 
     def run(self):
         self.sip.run()
+
+
+# unit test
+
+# t = threading.Thread(target = Test, name = 'Sippy1',
+#                     args = ('nba2_test', 0, 1, 1))
+# t.start()
+
+
+# x = input()
+
+# print(x)
+
