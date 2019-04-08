@@ -19,16 +19,3 @@ class Test:
 
     def run(self):
         self.sip.run()
-
-
-# unit test
-
-# t = threading.Thread(target = Test, name = 'Sippy1',
-#                     args = ('nba2_test', 0, 1, 1))
-# t.start()
-
-
-# x = input()
-
-# print(x)
-
