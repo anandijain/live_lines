@@ -25,7 +25,7 @@ headers = {'User-Agent': 'Mozilla/5.0'}
 
 
 class Sippy:
-    def __init__(self, file_name='data/nba2.csv', header=0, league=1):
+    def __init__(self, fn='nba2', header=0, league=1):
         print("~~~~sippywoke~~~~")
         self.games = []
         self.links = []
@@ -36,7 +36,8 @@ class Sippy:
         self.set_league(self.league)
         self.json_events()
         self.counter = 0
-        self.file = open_file(file_name)
+        print(fn)
+        self.file = open_file(fn)
         access_time = time.time()
         self.init_games(access_time)
         if header == 1:
@@ -533,14 +534,14 @@ def req(url):
         return
 
 
-def open_file(file_name):
-    complete_name = os.path.join(save_path, file_name + ".csv")
+def open_file(fn):
+    complete_name = os.path.join(save_path, fn + ".csv")
     file = open(complete_name, "a", encoding="utf-8")  # line below probably better called in caller or add another arg
     return file
 
 
-def write_json(file_name, json):
-    file = open_file(file_name)
+def write_json(fn, json):
+    file = open_file(fn)
     file.write(json)
     file.write('\n')
     file.close()

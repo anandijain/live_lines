@@ -4,11 +4,11 @@ import threading
 import time
 
 class Test:
-    def __init__(self, file_name, header=0, game_type=1, run=1):
-        self.fn = file_name
+    def __init__(self, fn='nba2', header=0, game_type=1, run=1):
+        self.fn = fn
         self.gt = game_type
         self.header = header
-        self.sip = sl.Sippy(self.fn, header, self.gt)
+        self.sip = sl.Sippy(fn=self.fn, header=self.header, league=self.gt)
         self.sip.step()
         print('num_games: ' + str(len(self.sip.games)))
         if len(self.sip.games) > 0:
